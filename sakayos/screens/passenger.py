@@ -46,7 +46,7 @@ def render_process_table(processes: list[ProcessInfo]) -> Table:
     This is a pure helper — no side effects, no psutil calls.
     """
     table = Table(
-        title="🧑‍🤝‍🧑 Passengers (Processes)",
+        title="🧑‍🤝‍🧑 Passengers on the Bus (Processes)",
         show_header=True,
         header_style="bold bright_yellow",
         border_style="dim",
@@ -92,16 +92,29 @@ class PassengerScreen(Screen):
             # ── Title ────────────────────────────────────────────────────
             with Center():
                 yield Label(
-                    "🧑‍🤝‍🧑  Passenger Manager",
+                    "🧑‍🤝‍🧑  Passenger Manager  (Process Viewer)",
                     id="screen-title",
                 )
             with Center():
                 yield Label(
-                    "View running processes on your system as passengers "
-                    "on the bus. Each row is a real OS process — read-only, "
-                    "no modifications are made.",
+                    "Every running process on your system is a passenger on "
+                    "the bus. This read-only view shows who is currently "
+                    "riding — their PID, name, CPU and memory usage, and "
+                    "status. No processes are modified.",
                     id="screen-description",
                 )
+
+            # ── Help Panel ────────────────────────────────────────────────
+            yield Static(
+                "[bold bright_cyan]🗺 Analogy Guide[/]\n"
+                "  Passenger = [bold]Process[/] (a running program)\n"
+                "  Boarding the bus = Process is [bold]running[/]\n"
+                "  Waiting at the terminal = Process is [bold]sleeping/waiting[/]\n"
+                "  PID = Passenger's ticket number\n"
+                "  CPU % = How much of the vehicle's engine the passenger uses\n"
+                "  Mem % = How many seats the passenger occupies",
+                id="help-panel",
+            )
 
             # ── Controls ─────────────────────────────────────────────────
             with Horizontal(classes="form-row"):
