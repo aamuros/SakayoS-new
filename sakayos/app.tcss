@@ -52,7 +52,7 @@ Screen {
     color: $text;
     text-align: center;
     width: 64;
-    padding: 1 0 2 0;
+    padding: 0 0 1 0;
 }
 
 #btn-back {
@@ -90,7 +90,7 @@ Screen {
 }
 
 .btn-group {
-    padding: 1 0;
+    padding: 0;
 }
 
 .btn-group Button {
@@ -108,15 +108,15 @@ Screen {
 }
 
 #results-area {
-    padding: 1 2;
-    margin: 1 1;
+    padding: 0 2;
+    margin: 0 1;
 }
 
 /* ── Form Inputs ───────────────────────────────────────────────────────── */
 
 .form-row {
     height: auto;
-    margin: 1 1;
+    margin: 0 1;
 }
 
 .short-input {
@@ -127,6 +127,16 @@ Screen {
 #select-strategy {
     margin: 0 1 1 1;
     width: 40;
+}
+
+#select-sort {
+    margin: 0 1;
+    width: 30;
+}
+
+#select-limit {
+    margin: 0 1;
+    width: 20;
 }
 
 /* ── Hidden utility ────────────────────────────────────────────────────── */
