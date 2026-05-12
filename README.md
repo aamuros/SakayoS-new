@@ -59,20 +59,30 @@ python -m pytest tests/ -v
 ```
 sakayos/
   __init__.py
-  app.py                    # Main application entry point
+  app.py                    # Main Textual application entry point
+  app.tcss                  # Textual CSS stylesheet
   core/
     __init__.py
-    models.py               # Data models (placeholder)
-    scheduling.py           # CPU scheduling algorithms (placeholder)
-    memory.py               # Memory allocation algorithms (placeholder)
-    process_reader.py       # psutil-based process reader (placeholder)
+    models.py               # Data models (SchedulerProcess, MemoryBlock, etc.)
+    scheduling.py           # CPU scheduling algorithms (FCFS, SJF, RR, Priority)
+    memory.py               # Memory allocation (First/Best/Worst Fit)
+    process_reader.py       # psutil-based process reader
   ui/
     __init__.py             # UI widgets (placeholder)
   screens/
-    __init__.py             # Textual screens (placeholder)
+    __init__.py             # Screen re-exports
+    home.py                 # Home screen with navigation
+    passenger.py            # Passenger Manager placeholder screen
+    dispatch.py             # Dispatch Scheduler placeholder screen
+    seat_allocator.py       # Seat Allocator placeholder screen
 tests/
   __init__.py
   test_smoke.py             # Smoke test — verifies package imports
+  test_models.py            # Data model validation tests
+  test_scheduling.py        # Scheduling algorithm tests
+  test_memory.py            # Memory allocator tests
+  test_process_reader.py    # Process reader tests
+  test_app.py               # Textual app skeleton tests
 ```
 
 ## Dependencies
@@ -87,7 +97,9 @@ tests/
 
 ## Current Status
 
-> **Phase 1 — Repository skeleton and test harness only.**
+> **Phase 6 — Textual UI skeleton complete.**
 >
-> No algorithms, no Textual screens, no psutil reading implemented yet.
-> Only the package structure and a smoke test exist.
+> Core algorithms (scheduling, memory, process reader) are implemented.
+> The terminal dashboard has a Home screen with navigation to three
+> placeholder module screens (Passenger Manager, Dispatch Scheduler,
+> Seat Allocator). Run with `./run.sh` or `python -m sakayos.app`.

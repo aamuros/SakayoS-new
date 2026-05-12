@@ -1,0 +1,119 @@
+/* SakayOS — Textual CSS stylesheet */
+
+/* ── Global ─────────────────────────────────────────────────────────────── */
+
+Screen {
+    background: $surface;
+}
+
+/* ── Home Screen ────────────────────────────────────────────────────────── */
+
+#home-container {
+    padding: 2 4;
+}
+
+#home-title {
+    text-style: bold;
+    color: $accent;
+    text-align: center;
+    width: 100%;
+    padding: 1 0;
+}
+
+#home-description {
+    color: $text-muted;
+    text-align: center;
+    width: 60;
+    padding: 1 0 2 0;
+}
+
+#home-container Button {
+    width: 40;
+    margin: 1 0;
+}
+
+/* ── Module Screens (Passenger, Dispatch, Seat Allocator) ───────────────── */
+
+#passenger-container,
+#dispatch-container,
+#seat-container {
+    padding: 2 4;
+}
+
+#screen-title {
+    text-style: bold;
+    color: $accent;
+    text-align: center;
+    width: 100%;
+    padding: 1 0;
+}
+
+#screen-description {
+    color: $text;
+    text-align: center;
+    width: 64;
+    padding: 1 0 2 0;
+}
+
+#btn-back {
+    width: 30;
+    margin: 1 0;
+}
+
+/* ── Dispatch Scheduler — Form Fields ──────────────────────────────────── */
+
+.field-label {
+    color: $accent;
+    text-style: bold;
+    padding: 1 0 0 1;
+}
+
+.hint-label {
+    color: $text-muted;
+    padding: 0 0 0 1;
+}
+
+#algo-select {
+    margin: 0 1 1 1;
+    width: 60;
+}
+
+#process-input {
+    margin: 0 1 1 1;
+    height: 8;
+    max-width: 72;
+}
+
+#quantum-input {
+    margin: 0 1 1 1;
+    width: 30;
+}
+
+.btn-group {
+    padding: 1 0;
+}
+
+.btn-group Button {
+    margin: 0 1;
+}
+
+/* ── Dispatch Scheduler — Error & Results ──────────────────────────────── */
+
+#error-display {
+    color: $error;
+    background: $error 10%;
+    padding: 1 2;
+    margin: 1 1;
+    border: tall $error;
+}
+
+#results-area {
+    padding: 1 2;
+    margin: 1 1;
+}
+
+/* ── Hidden utility ────────────────────────────────────────────────────── */
+
+.hidden {
+    display: none;
+}
