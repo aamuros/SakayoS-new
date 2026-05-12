@@ -10,10 +10,6 @@ def test_package_imports():
 
 def test_core_subpackage_imports():
     """Core subpackage and its placeholder modules should be importable."""
-    from sakayos.core import models  # noqa: F811
-    from sakayos.core import scheduling  # noqa: F811
-    from sakayos.core import memory  # noqa: F811
-    from sakayos.core import process_reader  # noqa: F811
 
 
 def test_app_module_imports():

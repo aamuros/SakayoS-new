@@ -13,7 +13,7 @@ Users can:
 from __future__ import annotations
 
 from textual.app import ComposeResult
-from textual.containers import Center, Horizontal, Vertical, VerticalScroll
+from textual.containers import Center, Horizontal, VerticalScroll
 from textual.screen import Screen
 from textual.widgets import (
     Button,
@@ -27,7 +27,6 @@ from textual.widgets import (
 )
 
 from rich.table import Table
-from rich.text import Text
 
 from sakayos.core.models import SchedulerProcess, TimelineEntry
 from sakayos.core.scheduling import (
@@ -331,7 +330,7 @@ class DispatchScreen(Screen):
         algo_names = dict(_ALGORITHMS)
         algo_label = algo_names.get(algo, algo)
 
-        output = Text()
+
         results_area.update("")
 
         from rich.console import Group

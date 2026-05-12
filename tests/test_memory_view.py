@@ -1,6 +1,5 @@
 """Tests for sakayos.ui.memory_view."""
 
-import pytest
 from rich.table import Table
 
 from sakayos.core.models import MemoryBlock

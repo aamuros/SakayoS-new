@@ -5,7 +5,6 @@ Covers parse_process_line, parse_quantum, and parse_process_block.
 
 import pytest
 
-from sakayos.core.models import SchedulerProcess
 from sakayos.ui.parsing import parse_process_line, parse_quantum, parse_process_block
 
 
