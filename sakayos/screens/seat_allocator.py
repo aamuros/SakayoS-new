@@ -58,20 +58,33 @@ class SeatAllocatorScreen(Screen):
             # ── Title ────────────────────────────────────────────────────
             with Center():
                 yield Label(
-                    "💺  Seat Allocator",
+                    "💺  Seat Allocator  (Memory Allocation)",
                     id="screen-title",
                 )
             with Center():
                 yield Label(
-                    "Simulate memory allocation. Initialize memory, choose a strategy, "
-                    "then allocate and deallocate blocks. This module demonstrates "
-                    "fragmentation in contiguous memory allocation.",
+                    "Assign seats (memory blocks) to passengers (processes). "
+                    "Choose a seat assignment (allocation) strategy, then watch "
+                    "how boarding and alighting create fragmentation — empty "
+                    "gaps between occupied seats that are too small to use.",
                     id="screen-description",
                 )
 
+            # ── Help Panel ────────────────────────────────────────────────
+            yield Static(
+                "[bold bright_cyan]🗺 Analogy Guide[/]\n"
+                "  Seat = [bold]Memory Block[/] (a contiguous region of memory)\n"
+                "  Seat assignment = [bold]Memory Allocation[/] (giving memory to a process)\n"
+                "  Passenger stands up = [bold]Deallocation[/] (freeing memory)\n"
+                "  Empty gaps = [bold]Fragmentation[/] (unusable small free blocks)\n"
+                "  Bus capacity = [bold]Total Memory Size[/]\n"
+                "  Strategy = How the driver picks which seat to assign",
+                id="help-panel",
+            )
+
             # ── Initialization Section ───────────────────────────────────
             with Horizontal(classes="form-row"):
-                yield Label("Total Memory Size:", classes="field-label")
+                yield Label("Total Bus Capacity (Memory Size):", classes="field-label")
                 yield Input(placeholder="e.g. 1024", id="input-mem-size", classes="short-input")
                 yield Button("Initialize", id="btn-init", variant="primary")
 
@@ -79,7 +92,7 @@ class SeatAllocatorScreen(Screen):
 
             # ── Action Section (hidden until init) ───────────────────────
             with Vertical(id="action-section", classes="hidden"):
-                yield Label("Allocation Strategy", classes="field-label")
+                yield Label("Seat Assignment Strategy (Allocation)", classes="field-label")
                 yield Select(
                     [(label, key) for label, key in _STRATEGIES],
                     id="select-strategy",
@@ -88,15 +101,15 @@ class SeatAllocatorScreen(Screen):
                 )
 
                 with Horizontal(classes="form-row"):
-                    yield Label("Process ID:", classes="field-label")
+                    yield Label("Passenger ID (Process):", classes="field-label")
                     yield Input(placeholder="e.g. P1", id="input-pid", classes="short-input")
-                    yield Label("Size:", classes="field-label")
+                    yield Label("Seats Needed (Size):", classes="field-label")
                     yield Input(placeholder="e.g. 100", id="input-alloc-size", classes="short-input")
 
                 with Center():
                     with Horizontal(classes="btn-group"):
-                        yield Button("Allocate", id="btn-alloc", variant="success")
-                        yield Button("Deallocate", id="btn-dealloc", variant="warning")
+                        yield Button("Board (Allocate)", id="btn-alloc", variant="success")
+                        yield Button("Alight (Deallocate)", id="btn-dealloc", variant="warning")
 
             # ── Results Area ─────────────────────────────────────────────
             yield Static("", id="results-area", classes="hidden")
