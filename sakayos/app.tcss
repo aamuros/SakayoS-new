@@ -60,6 +60,30 @@ Screen {
     margin: 1 0;
 }
 
+/* ── Analogy / Help Elements ───────────────────────────────────────────── */
+
+#home-glossary {
+    color: $text-muted;
+    text-align: center;
+    width: 72;
+    padding: 0 0 1 0;
+}
+
+.module-hint {
+    color: $text-muted;
+    text-align: center;
+    padding: 0;
+    margin: 0 0 1 0;
+}
+
+#help-panel {
+    color: $text;
+    background: $primary 8%;
+    padding: 1 2;
+    margin: 0 1 1 1;
+    border: tall $primary 40%;
+}
+
 /* ── Dispatch Scheduler — Form Fields ──────────────────────────────────── */
 
 .field-label {

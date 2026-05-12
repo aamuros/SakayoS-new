@@ -81,19 +81,32 @@ class DispatchScreen(Screen):
             # ── Title ────────────────────────────────────────────────────
             with Center():
                 yield Label(
-                    "🚏  Dispatch Scheduler",
+                    "🚏  Dispatch Scheduler  (CPU Scheduling)",
                     id="screen-title",
                 )
             with Center():
                 yield Label(
-                    "Simulate CPU scheduling algorithms. Enter your "
-                    "processes below, choose an algorithm, and run the "
-                    "simulation to see the Gantt chart and metrics.",
+                    "The dispatcher decides which passenger (process) gets to "
+                    "ride the vehicle (CPU) next. Choose a dispatching "
+                    "(scheduling) algorithm, enter passengers waiting in the "
+                    "terminal line (ready queue), and run the simulation.",
                     id="screen-description",
                 )
 
+            # ── Help Panel ────────────────────────────────────────────────
+            yield Static(
+                "[bold bright_cyan]🗺 Analogy Guide[/]\n"
+                "  Passenger = [bold]Process[/] (a program waiting for CPU time)\n"
+                "  Vehicle = [bold]CPU[/] (the processor that runs code)\n"
+                "  Terminal line = [bold]Ready Queue[/] (processes waiting to run)\n"
+                "  Dispatching = [bold]Scheduling[/] (choosing who goes next)\n"
+                "  Arrival time = When the passenger reaches the terminal\n"
+                "  Burst time = How long the passenger rides the vehicle",
+                id="help-panel",
+            )
+
             # ── Algorithm selector ───────────────────────────────────────
-            yield Label("Algorithm", classes="field-label")
+            yield Label("Dispatching Algorithm (Scheduling)", classes="field-label")
             yield Select(
                 [(label, key) for key, label in _ALGORITHMS],
                 id="algo-select",
@@ -104,7 +117,7 @@ class DispatchScreen(Screen):
             yield Label("", id="input-hint", classes="hint-label")
 
             # ── Process input area ───────────────────────────────────────
-            yield Label("Process Data", classes="field-label")
+            yield Label("Passenger Data (Process Data)", classes="field-label")
             yield TextArea(
                 "",
                 id="process-input",
