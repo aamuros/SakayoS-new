@@ -3,7 +3,6 @@
 import pytest
 
 from sakayos.core.memory import MemoryAllocator
-from sakayos.core.models import MemoryBlock
 
 
 # ── 1. Initial State ───────────────────────────────────────────────────────

@@ -63,18 +63,26 @@ sakayos/
   app.tcss                  # Textual CSS stylesheet
   core/
     __init__.py
-    models.py               # Data models (SchedulerProcess, MemoryBlock, etc.)
+    models.py               # Data models (SchedulerProcess, MemoryBlock, ProcessInfo)
     scheduling.py           # CPU scheduling algorithms (FCFS, SJF, RR, Priority)
     memory.py               # Memory allocation (First/Best/Worst Fit)
     process_reader.py       # psutil-based process reader
   ui/
-    __init__.py             # UI widgets (placeholder)
+    __init__.py
+    gantt.py                # Gantt chart and metrics table rendering
+    memory_view.py          # Memory bar, block table, fragmentation rendering
+    parsing.py              # Input parsing helpers (process lines, quantum, memory)
   screens/
     __init__.py             # Screen re-exports
-    home.py                 # Home screen with navigation
-    passenger.py            # Passenger Manager placeholder screen
-    dispatch.py             # Dispatch Scheduler placeholder screen
-    seat_allocator.py       # Seat Allocator placeholder screen
+    home.py                 # Home screen with navigation and glossary
+    passenger.py            # Passenger Manager — live process viewer
+    dispatch.py             # Dispatch Scheduler — CPU scheduling simulation
+    seat_allocator.py       # Seat Allocator — memory allocation simulation
+scripts/
+  setup_ubuntu.sh           # Ubuntu setup: venv + deps (no sudo)
+  run_tests.sh              # Runs pytest + ruff
+docs/
+  DEPLOYMENT.md             # Ubuntu bootable USB deployment guide
 tests/
   __init__.py
   test_smoke.py             # Smoke test — verifies package imports
@@ -83,7 +91,13 @@ tests/
   test_memory.py            # Memory allocator tests
   test_process_reader.py    # Process reader tests
   test_app.py               # Textual app skeleton tests
+  test_dispatch_parsing.py  # Input parsing helper tests
+  test_gantt.py             # Gantt chart rendering tests
+  test_memory_parsing.py    # Memory input parsing tests
+  test_memory_view.py       # Memory visualization tests
+  test_passenger_view.py    # Process table rendering tests
 ```
+
 
 ## Dependencies
 
@@ -97,9 +111,11 @@ tests/
 
 ## Current Status
 
-> **Phase 6 — Textual UI skeleton complete.**
+> **All modules implemented and tested.**
 >
-> Core algorithms (scheduling, memory, process reader) are implemented.
-> The terminal dashboard has a Home screen with navigation to three
-> placeholder module screens (Passenger Manager, Dispatch Scheduler,
-> Seat Allocator). Run with `./run.sh` or `python -m sakayos.app`.
+> - **Passenger Manager** — live process viewer using `psutil` (read-only).
+> - **Dispatch Scheduler** — CPU scheduling simulation (FCFS, SJF, RR, Priority) with Gantt charts and metrics.
+> - **Seat Allocator** — memory allocation simulation (First/Best/Worst Fit) with fragmentation visualization.
+> - Metro Manila commuting analogy labels are applied throughout the UI.
+> - Ubuntu bootable USB deployment guide available at `docs/DEPLOYMENT.md`.
+> - Run with `./run.sh` or `python -m sakayos.app`.

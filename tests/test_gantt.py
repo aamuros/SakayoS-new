@@ -4,8 +4,6 @@ Tests verify that known timelines produce known, deterministic
 text representations. Does NOT test full manual UI interaction.
 """
 
-import pytest
-
 from sakayos.core.models import TimelineEntry
 from sakayos.ui.gantt import render_gantt_text, render_gantt_table, render_metrics_table
 
@@ -71,7 +69,7 @@ class TestRenderGanttText:
         ]
         result = render_gantt_text(timeline)
         # Find the P1 legend line.
-        p1_line = [l for l in result.split("\n") if l.startswith("P1:")][0]
+        p1_line = [line for line in result.split("\n") if line.startswith("P1:")][0]
         assert "[0-2]" in p1_line
         assert "[4-6]" in p1_line
 
@@ -106,7 +104,7 @@ class TestRenderGanttText:
             assert pid in result
 
         # Verify P1 has 3 spans in its legend.
-        p1_line = [l for l in result.split("\n") if l.startswith("P1:")][0]
+        p1_line = [line for line in result.split("\n") if line.startswith("P1:")][0]
         assert "[0-2]" in p1_line
         assert "[5-7]" in p1_line
         assert "[8-9]" in p1_line
