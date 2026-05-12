@@ -158,3 +158,45 @@ def parse_process_block(
         raise ValueError("No valid process lines found")
 
     return processes
+
+
+def parse_memory_size(raw: str) -> int:
+    """Parse and validate memory size from raw input.
+
+    Args:
+        raw: the user-entered string.
+
+    Returns:
+        A positive integer size.
+
+    Raises:
+        ValueError: if the input is not a positive integer.
+    """
+    raw = raw.strip()
+    if not raw:
+        raise ValueError("Memory size cannot be empty")
+    try:
+        size = int(raw)
+    except ValueError:
+        raise ValueError(f"Memory size must be an integer, got {raw!r}")
+    if size <= 0:
+        raise ValueError(f"Memory size must be positive, got {size}")
+    return size
+
+
+def parse_process_id(raw: str) -> str:
+    """Parse and validate process ID from raw input.
+
+    Args:
+        raw: the user-entered string.
+
+    Returns:
+        A cleaned string.
+
+    Raises:
+        ValueError: if the input is empty.
+    """
+    cleaned = raw.strip()
+    if not cleaned:
+        raise ValueError("Process ID cannot be empty")
+    return cleaned

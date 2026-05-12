@@ -112,6 +112,23 @@ Screen {
     margin: 1 1;
 }
 
+/* ── Form Inputs ───────────────────────────────────────────────────────── */
+
+.form-row {
+    height: auto;
+    margin: 1 1;
+}
+
+.short-input {
+    width: 20;
+    margin: 0 1;
+}
+
+#select-strategy {
+    margin: 0 1 1 1;
+    width: 40;
+}
+
 /* ── Hidden utility ────────────────────────────────────────────────────── */
 
 .hidden {
