@@ -7,6 +7,8 @@ Provides:
 
 from __future__ import annotations
 
+import time
+
 import psutil
 
 from sakayos.core.models import ProcessInfo
@@ -23,6 +25,8 @@ _SORT_OPTIONS: dict[str, tuple] = {
 def list_processes(
     limit: int | None = None,
     sort_by: str = "pid",
+    sample_cpu: bool = False,
+    sample_interval: float = 0.1,
 ) -> list[ProcessInfo]:
     """Return a list of :class:`ProcessInfo` snapshots from the live system.
 
@@ -38,11 +42,19 @@ def list_processes(
         * ``"cpu"``    — descending by CPU usage
         * ``"memory"`` — descending by memory usage
         * ``"name"``   — alphabetical (case-insensitive)
+    sample_cpu:
+        If True, prime per-process CPU counters, wait *sample_interval*
+        seconds, then read CPU usage again.  The default False preserves the
+        existing fast snapshot behavior.
+    sample_interval:
+        Number of seconds to wait between CPU samples when *sample_cpu* is
+        True.  Negative values raise :class:`ValueError`.
 
     Raises
     ------
     ValueError
-        If *sort_by* is not one of the recognised keys **or** *limit* is ≤ 0.
+        If *sort_by* is not one of the recognised keys, *limit* is ≤ 0, or
+        *sample_interval* is negative.
     """
     # ── validate inputs early ───────────────────────────────────────────
     if sort_by not in _SORT_OPTIONS:
@@ -53,27 +65,61 @@ def list_processes(
         raise ValueError(
             f"limit must be a positive integer or None, got {limit}"
         )
+    if sample_interval < 0:
+        raise ValueError(
+            f"sample_interval must be zero or greater, got {sample_interval}"
+        )
 
     # ── collect process snapshots ───────────────────────────────────────
     attrs = ["pid", "name", "status", "cpu_percent", "memory_percent", "username"]
-    processes: list[ProcessInfo] = []
+    snapshots: list[tuple[psutil.Process, dict]] = []
 
     for proc in psutil.process_iter(attrs=attrs):
         try:
             info = proc.info
+            pid = _normalize_pid(info.get("pid"))
+            if pid is None:
+                continue
+
+            if sample_cpu:
+                proc.cpu_percent(interval=None)
+
+            snapshots.append((proc, info))
         except (psutil.AccessDenied, psutil.NoSuchProcess, psutil.ZombieProcess):
             continue
+        except Exception:
+            continue
 
-        processes.append(
-            ProcessInfo(
-                pid=info["pid"],
-                name=info["name"],
-                status=info["status"],
-                cpu_percent=info["cpu_percent"],
-                memory_percent=info["memory_percent"],
-                username=info.get("username"),
+    if sample_cpu and snapshots:
+        time.sleep(sample_interval)
+
+    processes: list[ProcessInfo] = []
+    for proc, info in snapshots:
+        try:
+            pid = _normalize_pid(info.get("pid"))
+            if pid is None:
+                continue
+
+            cpu_percent = (
+                _normalize_percent(proc.cpu_percent(interval=None))
+                if sample_cpu
+                else _normalize_percent(info.get("cpu_percent"))
             )
-        )
+
+            processes.append(
+                ProcessInfo(
+                    pid=pid,
+                    name=_normalize_text(info.get("name")),
+                    status=_normalize_text(info.get("status")),
+                    cpu_percent=cpu_percent,
+                    memory_percent=_normalize_percent(info.get("memory_percent")),
+                    username=info.get("username"),
+                )
+            )
+        except (psutil.AccessDenied, psutil.NoSuchProcess, psutil.ZombieProcess):
+            continue
+        except Exception:
+            continue
 
     # ── sort ────────────────────────────────────────────────────────────
     key_fn, reverse = _SORT_OPTIONS[sort_by]
@@ -84,3 +130,29 @@ def list_processes(
         processes = processes[:limit]
 
     return processes
+
+
+def _normalize_pid(value: object) -> int | None:
+    """Return a usable pid, or None when the process identity is unavailable."""
+    if value is None:
+        return None
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _normalize_text(value: object) -> str:
+    if value is None:
+        return "unknown"
+    text = str(value)
+    return text if text else "unknown"
+
+
+def _normalize_percent(value: object) -> float:
+    if value is None:
+        return 0.0
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return 0.0

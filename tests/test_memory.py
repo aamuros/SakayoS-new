@@ -2,7 +2,26 @@
 
 import pytest
 
+from sakayos.core.models import MemoryBlock
 from sakayos.core.memory import MemoryAllocator
+
+
+def assert_memory_invariants(alloc: MemoryAllocator) -> None:
+    blocks = alloc.get_blocks()
+    assert sum(block.size for block in blocks) == alloc.total_size
+
+    expected_start = 0
+    allocated_process_ids: set[str] = set()
+
+    for index, block in enumerate(blocks):
+        assert block.size > 0
+        assert block.start == expected_start
+        if index > 0:
+            assert not (blocks[index - 1].is_free and block.is_free)
+        if block.process_id is not None:
+            assert block.process_id not in allocated_process_ids
+            allocated_process_ids.add(block.process_id)
+        expected_start += block.size
 
 
 # ── 1. Initial State ───────────────────────────────────────────────────────
@@ -24,6 +43,10 @@ class TestInitialState:
         blocks = alloc.get_blocks()
         assert len(blocks) == 1
         assert blocks[0].size == 256
+
+    def test_total_size_is_readable(self):
+        alloc = MemoryAllocator(total_size=512)
+        assert alloc.total_size == 512
 
 
 # ── 2. First Fit ───────────────────────────────────────────────────────────
@@ -194,6 +217,20 @@ class TestDeallocation:
         alloc = MemoryAllocator(total_size=256)
         assert alloc.deallocate("nonexistent") is False
 
+    def test_repeated_deallocation_attempts_return_false_after_first_free(self):
+        alloc = MemoryAllocator(total_size=256)
+        alloc.allocate("P1", 100, "first_fit")
+
+        assert alloc.deallocate("P1") is True
+        assert alloc.deallocate("P1") is False
+        assert alloc.deallocate("P1") is False
+
+        blocks = alloc.get_blocks()
+        assert len(blocks) == 1
+        assert blocks[0].is_free is True
+        assert blocks[0].size == 256
+        assert_memory_invariants(alloc)
+
     def test_deallocation_preserves_other_allocations(self):
         alloc = MemoryAllocator(total_size=300)
         alloc.allocate("P1", 100, "first_fit")
@@ -259,6 +296,25 @@ class TestMerging:
         assert blocks[0].is_free is True
         assert blocks[0].size == 300
         assert blocks[0].start == 0
+
+    def test_allocation_after_fragmentation_and_merge_recovery(self):
+        alloc = MemoryAllocator(total_size=500)
+        alloc.allocate("P1", 100, "first_fit")
+        alloc.allocate("P2", 150, "first_fit")
+        alloc.allocate("P3", 100, "first_fit")
+        alloc.allocate("P4", 150, "first_fit")
+
+        alloc.deallocate("P2")
+        alloc.deallocate("P4")
+        assert alloc.allocate("P5", 250, "best_fit") is False
+
+        alloc.deallocate("P3")
+        assert alloc.allocate("P5", 250, "best_fit") is True
+
+        p5_block = [b for b in alloc.get_blocks() if b.process_id == "P5"][0]
+        assert p5_block.start == 100
+        assert p5_block.size == 250
+        assert_memory_invariants(alloc)
 
 
 # ── 8. Duplicate Process ID ───────────────────────────────────────────────
@@ -355,3 +411,97 @@ class TestFragmentationSummary:
         assert summary["largest_free_block"] == 0
         assert summary["free_block_count"] == 0
         assert summary["allocated_block_count"] == 1
+
+
+# ── 11. Invariants ─────────────────────────────────────────────────────────
+
+
+class TestMemoryInvariants:
+    """Allocator operations preserve internal block-list invariants."""
+
+    @pytest.mark.parametrize("strategy", ["first_fit", "best_fit", "worst_fit"])
+    def test_long_allocation_deallocation_sequence_preserves_invariants(
+        self, strategy: str
+    ):
+        alloc = MemoryAllocator(total_size=1000)
+        operations = [
+            ("alloc", "P1", 120),
+            ("alloc", "P2", 80),
+            ("alloc", "P3", 200),
+            ("alloc", "P4", 50),
+            ("alloc", "P5", 75),
+            ("alloc", "P6", 125),
+            ("free", "P2", None),
+            ("free", "P4", None),
+            ("alloc", "P7", 45),
+            ("alloc", "P8", 70),
+            ("free", "P1", None),
+            ("free", "P3", None),
+            ("alloc", "P9", 250),
+            ("free", "P5", None),
+            ("free", "P7", None),
+            ("alloc", "P10", 60),
+            ("free", "P6", None),
+            ("free", "P8", None),
+            ("alloc", "P11", 180),
+        ]
+
+        for action, process_id, size in operations:
+            if action == "alloc":
+                assert size is not None
+                alloc.allocate(process_id, size, strategy)
+            else:
+                alloc.deallocate(process_id)
+            assert_memory_invariants(alloc)
+
+    def test_get_blocks_returns_snapshot_objects(self):
+        alloc = MemoryAllocator(total_size=100)
+        blocks = alloc.get_blocks()
+        blocks[0].size = 1
+
+        assert alloc.get_blocks()[0].size == 100
+        assert_memory_invariants(alloc)
+
+    def test_internal_validation_catches_total_size_mismatch(self):
+        alloc = MemoryAllocator(total_size=100)
+        alloc._blocks = [MemoryBlock(start=0, size=99, process_id=None)]
+
+        with pytest.raises(RuntimeError, match="block sizes sum"):
+            alloc._validate_invariants()
+
+    def test_internal_validation_catches_non_contiguous_blocks(self):
+        alloc = MemoryAllocator(total_size=100)
+        alloc._blocks = [
+            MemoryBlock(start=0, size=50, process_id="P1"),
+            MemoryBlock(start=60, size=40, process_id=None),
+        ]
+
+        with pytest.raises(RuntimeError, match="starts at 60"):
+            alloc._validate_invariants()
+
+    def test_internal_validation_catches_invalid_block_size(self):
+        alloc = MemoryAllocator(total_size=100)
+        alloc._blocks[0].size = 0
+
+        with pytest.raises(RuntimeError, match="invalid size"):
+            alloc._validate_invariants()
+
+    def test_internal_validation_catches_duplicate_allocated_process_ids(self):
+        alloc = MemoryAllocator(total_size=100)
+        alloc._blocks = [
+            MemoryBlock(start=0, size=40, process_id="P1"),
+            MemoryBlock(start=40, size=60, process_id="P1"),
+        ]
+
+        with pytest.raises(RuntimeError, match="duplicate allocated process_id"):
+            alloc._validate_invariants()
+
+    def test_internal_validation_catches_unmerged_adjacent_free_blocks(self):
+        alloc = MemoryAllocator(total_size=100)
+        alloc._blocks = [
+            MemoryBlock(start=0, size=40, process_id=None),
+            MemoryBlock(start=40, size=60, process_id=None),
+        ]
+
+        with pytest.raises(RuntimeError, match="adjacent free blocks"):
+            alloc._validate_invariants()

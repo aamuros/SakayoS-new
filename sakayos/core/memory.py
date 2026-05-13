@@ -33,9 +33,11 @@ class MemoryAllocator:
             raise ValueError(
                 f"total_size must be > 0, got {total_size}"
             )
+        self.total_size = total_size
         self._blocks: list[MemoryBlock] = [
             MemoryBlock(start=0, size=total_size, process_id=None)
         ]
+        self._validate_invariants()
 
     # ── public API ──────────────────────────────────────────────────────
 
@@ -75,6 +77,7 @@ class MemoryAllocator:
             )
             self._blocks[idx : idx + 1] = [allocated, remainder]
 
+        self._validate_invariants()
         return True
 
     def deallocate(self, process_id: str) -> bool:
@@ -94,11 +97,19 @@ class MemoryAllocator:
         )
 
         self._merge_around(idx)
+        self._validate_invariants()
         return True
 
     def get_blocks(self) -> list[MemoryBlock]:
         """Return a snapshot of the current block list."""
-        return list(self._blocks)
+        return [
+            MemoryBlock(
+                start=block.start,
+                size=block.size,
+                process_id=block.process_id,
+            )
+            for block in self._blocks
+        ]
 
     def get_fragmentation_summary(self) -> dict[str, int]:
         """Return a summary of memory fragmentation.
@@ -124,14 +135,14 @@ class MemoryAllocator:
     def _validate_allocate_args(
         self, process_id: str, size: int, strategy: str
     ) -> None:
-        if not process_id:
+        if not isinstance(process_id, str) or not process_id:
             raise ValueError("process_id must be a non-empty string")
         if size <= 0:
             raise ValueError(f"size must be > 0, got {size}")
         if strategy not in _VALID_STRATEGIES:
             raise ValueError(
                 f"strategy must be one of {_VALID_STRATEGIES}, "
-                f"got '{strategy}'"
+                f"got {strategy!r}"
             )
         if self._index_of_process(process_id) is not None:
             raise ValueError(
@@ -188,3 +199,52 @@ class MemoryAllocator:
                 process_id=None,
             )
             self._blocks[idx - 1 : idx + 1] = [merged]
+
+    def _validate_invariants(self) -> None:
+        """Raise RuntimeError if the internal block list is inconsistent."""
+        if not self._blocks:
+            raise RuntimeError("memory invariant violated: block list is empty")
+
+        expected_start = 0
+        total = 0
+        allocated_process_ids: set[str] = set()
+
+        for index, block in enumerate(self._blocks):
+            if block.size <= 0:
+                raise RuntimeError(
+                    "memory invariant violated: "
+                    f"block {index} has invalid size {block.size}"
+                )
+            if block.start != expected_start:
+                raise RuntimeError(
+                    "memory invariant violated: "
+                    f"block {index} starts at {block.start}, "
+                    f"expected {expected_start}"
+                )
+            if (
+                index > 0
+                and block.is_free
+                and self._blocks[index - 1].is_free
+            ):
+                raise RuntimeError(
+                    "memory invariant violated: "
+                    f"adjacent free blocks remain unmerged at indexes "
+                    f"{index - 1} and {index}"
+                )
+            if block.process_id is not None:
+                if block.process_id in allocated_process_ids:
+                    raise RuntimeError(
+                        "memory invariant violated: "
+                        f"duplicate allocated process_id {block.process_id!r}"
+                    )
+                allocated_process_ids.add(block.process_id)
+
+            expected_start += block.size
+            total += block.size
+
+        if total != self.total_size:
+            raise RuntimeError(
+                "memory invariant violated: "
+                f"block sizes sum to {total}, expected total_size "
+                f"{self.total_size}"
+            )

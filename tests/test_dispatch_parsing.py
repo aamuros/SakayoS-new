@@ -36,6 +36,14 @@ class TestParseProcessLine:
         proc = parse_process_line("P1 0 5 2")
         assert proc.priority == 2
 
+    def test_simple_pid_variants_allowed(self):
+        assert parse_process_line("job_1, 0, 5").pid == "job_1"
+        assert parse_process_line("process-3, 0, 5").pid == "process-3"
+
+    def test_pid_with_whitespace_raises(self):
+        with pytest.raises(ValueError, match="PID.*whitespace"):
+            parse_process_line("job 1, 0, 5")
+
     def test_require_priority_true_raises_when_missing(self):
         with pytest.raises(ValueError, match="4 fields"):
             parse_process_line("P1, 0, 5", require_priority=True)
@@ -71,6 +79,19 @@ class TestParseProcessLine:
     def test_non_integer_priority_raises(self):
         with pytest.raises(ValueError, match="priority"):
             parse_process_line("P1, 0, 5, abc")
+
+    def test_huge_burst_raises(self):
+        with pytest.raises(ValueError, match="burst_time.*<="):
+            parse_process_line("P1, 0, 1000001")
+
+    def test_custom_max_limits_can_be_disabled(self):
+        proc = parse_process_line(
+            "P1, 1000001, 1000001",
+            max_arrival_time=None,
+            max_burst_time=None,
+        )
+        assert proc.arrival_time == 1000001
+        assert proc.burst_time == 1000001
 
     def test_negative_arrival_raises(self):
         """Validation delegated to SchedulerProcess.__post_init__."""
@@ -146,6 +167,11 @@ class TestParseProcessBlock:
         procs = parse_process_block(text)
         assert len(procs) == 2
 
+    def test_comments_and_blank_lines_still_work(self):
+        text = "\n# processes\n\nP1, 0, 5\n\n# later\nP2, 1, 3\n"
+        procs = parse_process_block(text)
+        assert [proc.pid for proc in procs] == ["P1", "P2"]
+
     def test_empty_block_raises(self):
         with pytest.raises(ValueError, match="[Nn]o process"):
             parse_process_block("")
@@ -159,11 +185,21 @@ class TestParseProcessBlock:
         with pytest.raises(ValueError, match="Line 2"):
             parse_process_block(text)
 
+    def test_malformed_line_reports_original_line_number_after_blank_lines(self):
+        text = "\n# header\n\nP1, 0, 5\nP2, abc, 3"
+        with pytest.raises(ValueError, match="Line 5"):
+            parse_process_block(text)
+
     def test_require_priority_passed_through(self):
         text = "P1, 0, 5, 1\nP2, 1, 3, 2"
         procs = parse_process_block(text, require_priority=True)
         assert procs[0].priority == 1
         assert procs[1].priority == 2
+
+    def test_priority_parsing_still_works_with_comments_and_blanks(self):
+        text = "# priority data\n\nP1, 0, 5, 1\n\nP2, 1, 3, 2"
+        procs = parse_process_block(text, require_priority=True)
+        assert [proc.priority for proc in procs] == [1, 2]
 
     def test_require_priority_missing_raises(self):
         text = "P1, 0, 5\nP2, 1, 3"

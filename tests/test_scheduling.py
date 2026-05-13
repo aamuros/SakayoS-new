@@ -34,6 +34,23 @@ def _spans(timeline: list[TimelineEntry]) -> list[tuple[str, int, int]]:
     return [(e.pid, e.start, e.end) for e in timeline]
 
 
+def _executed_durations(timeline: list[TimelineEntry]) -> dict[str, int]:
+    """Sum executed time by pid."""
+    durations: dict[str, int] = {}
+    for entry in timeline:
+        durations[entry.pid] = durations.get(entry.pid, 0) + entry.duration
+    return durations
+
+
+def _malformed_timeline_entry(pid: str, start: int, end: int) -> TimelineEntry:
+    """Build an invalid TimelineEntry for validation tests only."""
+    entry = object.__new__(TimelineEntry)
+    entry.pid = pid
+    entry.start = start
+    entry.end = end
+    return entry
+
+
 # ── Empty & validation ──────────────────────────────────────────────────────
 
 
@@ -83,6 +100,59 @@ class TestValidation:
         ]
         with pytest.raises(ValueError, match="[Dd]uplicate"):
             schedule_priority(procs)
+
+
+class TestSchedulerInvariants:
+    """Basic invariants every scheduler output must satisfy."""
+
+    @pytest.mark.parametrize(
+        ("scheduler", "procs"),
+        [
+            (
+                schedule_fcfs,
+                [
+                    SchedulerProcess(pid="P1", arrival_time=0, burst_time=4),
+                    SchedulerProcess(pid="P2", arrival_time=2, burst_time=3),
+                    SchedulerProcess(pid="P3", arrival_time=5, burst_time=2),
+                ],
+            ),
+            (
+                schedule_sjf,
+                [
+                    SchedulerProcess(pid="P1", arrival_time=0, burst_time=6),
+                    SchedulerProcess(pid="P2", arrival_time=1, burst_time=2),
+                    SchedulerProcess(pid="P3", arrival_time=2, burst_time=4),
+                ],
+            ),
+            (
+                lambda procs: schedule_round_robin(procs, quantum=2),
+                [
+                    SchedulerProcess(pid="P1", arrival_time=0, burst_time=5),
+                    SchedulerProcess(pid="P2", arrival_time=1, burst_time=3),
+                    SchedulerProcess(pid="P3", arrival_time=2, burst_time=1),
+                ],
+            ),
+            (
+                schedule_priority,
+                [
+                    SchedulerProcess(pid="P1", arrival_time=0, burst_time=5, priority=3),
+                    SchedulerProcess(pid="P2", arrival_time=1, burst_time=2, priority=1),
+                    SchedulerProcess(pid="P3", arrival_time=2, burst_time=3, priority=2),
+                ],
+            ),
+        ],
+    )
+    def test_scheduler_outputs_satisfy_core_invariants(self, scheduler, procs):
+        timeline = scheduler(procs)
+        durations = _executed_durations(timeline)
+        metrics = calculate_metrics(procs, timeline)
+
+        assert durations == {proc.pid: proc.burst_time for proc in procs}
+        assert all(values["waiting_time"] >= 0 for values in metrics.values())
+        assert all(
+            previous.end <= current.start
+            for previous, current in zip(timeline, timeline[1:])
+        )
 
 
 # ── FCFS ────────────────────────────────────────────────────────────────────
@@ -308,13 +378,18 @@ class TestCalculateMetrics:
         ]
         metrics = calculate_metrics(procs, timeline)
 
-        assert metrics["P1"]["completion_time"] == 4
-        assert metrics["P1"]["turnaround_time"] == 4   # 4 - 0
-        assert metrics["P1"]["waiting_time"] == 0       # 4 - 4
-
-        assert metrics["P2"]["completion_time"] == 7
-        assert metrics["P2"]["turnaround_time"] == 6    # 7 - 1
-        assert metrics["P2"]["waiting_time"] == 3       # 6 - 3
+        assert metrics == {
+            "P1": {
+                "completion_time": 4,
+                "turnaround_time": 4,
+                "waiting_time": 0,
+            },
+            "P2": {
+                "completion_time": 7,
+                "turnaround_time": 6,
+                "waiting_time": 3,
+            },
+        }
 
     def test_metrics_with_preempted_process(self):
         """Metrics work correctly when a process has multiple timeline entries."""
@@ -341,6 +416,32 @@ class TestCalculateMetrics:
     def test_empty_inputs(self):
         assert calculate_metrics([], []) == {}
 
+    def test_valid_round_robin_metrics(self):
+        procs = [
+            SchedulerProcess(pid="P1", arrival_time=0, burst_time=5),
+            SchedulerProcess(pid="P2", arrival_time=1, burst_time=3),
+            SchedulerProcess(pid="P3", arrival_time=2, burst_time=1),
+        ]
+        timeline = schedule_round_robin(procs, quantum=2)
+
+        assert calculate_metrics(procs, timeline) == {
+            "P1": {
+                "completion_time": 9,
+                "turnaround_time": 9,
+                "waiting_time": 4,
+            },
+            "P2": {
+                "completion_time": 8,
+                "turnaround_time": 7,
+                "waiting_time": 4,
+            },
+            "P3": {
+                "completion_time": 5,
+                "turnaround_time": 3,
+                "waiting_time": 2,
+            },
+        }
+
     def test_duplicate_process_pid_raises(self):
         procs = [
             SchedulerProcess(pid="P1", arrival_time=0, burst_time=2),
@@ -361,6 +462,12 @@ class TestCalculateMetrics:
         with pytest.raises(ValueError, match="unknown pid"):
             calculate_metrics(procs, timeline)
 
+    def test_timeline_with_entries_but_no_processes_raises_unknown_pid(self):
+        timeline = [TimelineEntry(pid="P1", start=0, end=2)]
+
+        with pytest.raises(ValueError, match="unknown pid"):
+            calculate_metrics([], timeline)
+
     def test_missing_timeline_entry_raises(self):
         procs = [
             SchedulerProcess(pid="P1", arrival_time=0, burst_time=2),
@@ -376,4 +483,11 @@ class TestCalculateMetrics:
         timeline = [TimelineEntry(pid="P1", start=0, end=2)]
 
         with pytest.raises(ValueError, match="burst_time"):
+            calculate_metrics(procs, timeline)
+
+    def test_timeline_entry_with_invalid_bounds_raises(self):
+        procs = [SchedulerProcess(pid="P1", arrival_time=0, burst_time=3)]
+        timeline = [_malformed_timeline_entry(pid="P1", start=3, end=3)]
+
+        with pytest.raises(ValueError, match="invalid bounds"):
             calculate_metrics(procs, timeline)

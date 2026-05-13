@@ -29,14 +29,44 @@ def _validate_no_duplicate_pids(processes: list[SchedulerProcess]) -> None:
         seen.add(p.pid)
 
 
-def _next_arrival(processes: list[SchedulerProcess], current_time: int) -> int:
-    """Return the earliest arrival_time that is > current_time.
+def _validate_timeline_bounds(timeline: list[TimelineEntry]) -> None:
+    """Raise ValueError if a timeline entry has invalid time bounds."""
+    for entry in timeline:
+        if entry.end <= entry.start:
+            raise ValueError(
+                f"Timeline entry for pid {entry.pid!r} has invalid bounds: "
+                f"start={entry.start}, end={entry.end}"
+            )
 
-    Assumes at least one process has arrival_time > current_time.
-    """
-    return min(
-        p.arrival_time for p in processes if p.arrival_time > current_time
-    )
+
+def _validate_timeline_against_processes(
+    processes: list[SchedulerProcess],
+    timeline: list[TimelineEntry],
+) -> tuple[dict[str, int], dict[str, int]]:
+    """Validate timeline/process consistency and return completion/execution maps."""
+    _validate_no_duplicate_pids(processes)
+    _validate_timeline_bounds(timeline)
+
+    proc_map = {p.pid: p for p in processes}
+    completion: dict[str, int] = {}
+    executed_time = dict.fromkeys(proc_map, 0)
+
+    for entry in timeline:
+        if entry.pid not in proc_map:
+            raise ValueError(f"Timeline contains unknown pid: {entry.pid!r}")
+        completion[entry.pid] = entry.end
+        executed_time[entry.pid] += entry.duration
+
+    for pid, proc in proc_map.items():
+        if pid not in completion:
+            raise ValueError(f"Timeline is missing completion for process {pid!r}")
+        if executed_time[pid] != proc.burst_time:
+            raise ValueError(
+                f"Timeline executed duration for process {pid!r} must equal "
+                f"burst_time {proc.burst_time}, got {executed_time[pid]}"
+            )
+
+    return completion, executed_time
 
 
 # ── FCFS ────────────────────────────────────────────────────────────────────
@@ -256,31 +286,17 @@ def calculate_metrics(
     Returns:
         dict mapping pid → {completion_time, turnaround_time, waiting_time}.
     """
-    if not processes:
+    if not processes and not timeline:
         return {}
 
-    # Build a lookup of arrival_time and burst_time by pid.
-    _validate_no_duplicate_pids(processes)
+    completion, _executed_time = _validate_timeline_against_processes(
+        processes,
+        timeline,
+    )
     proc_map = {p.pid: p for p in processes}
-
-    # Find the completion time for each process (last timeline entry's end).
-    completion: dict[str, int] = {}
-    executed_time = dict.fromkeys(proc_map, 0)
-    for entry in timeline:
-        if entry.pid not in proc_map:
-            raise ValueError(f"Timeline contains unknown pid: {entry.pid!r}")
-        completion[entry.pid] = entry.end  # last one wins
-        executed_time[entry.pid] += entry.duration
 
     metrics: dict[str, dict[str, float]] = {}
     for pid, proc in proc_map.items():
-        if pid not in completion:
-            raise ValueError(f"Timeline is missing process {pid!r}")
-        if executed_time[pid] != proc.burst_time:
-            raise ValueError(
-                f"Timeline duration for process {pid!r} must match burst_time "
-                f"{proc.burst_time}, got {executed_time[pid]}"
-            )
         ct = completion[pid]
         tat = ct - proc.arrival_time
         wt = tat - proc.burst_time
