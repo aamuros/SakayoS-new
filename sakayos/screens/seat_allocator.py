@@ -58,68 +58,93 @@ class SeatAllocatorScreen(Screen):
 
     def compose(self) -> ComposeResult:
         yield Header()
-        with VerticalScroll(id="seat-container"):
+        with VerticalScroll(id="seat-container", classes="screen-container"):
             # ── Title ────────────────────────────────────────────────────
-            with Center():
-                yield Label(
-                    "💺  Seat Allocator  (Memory Allocation)",
-                    id="screen-title",
-                )
-            with Center():
-                yield Label(
-                    "Assign seats (memory blocks) to passengers (processes). "
-                    "Choose a seat assignment (allocation) strategy, then watch "
-                    "how boarding and alighting create fragmentation — empty "
-                    "gaps between occupied seats that are too small to use.",
-                    id="screen-description",
-                )
+            with Vertical(classes="screen-header"):
+                with Center():
+                    yield Label(
+                        "Seat Allocator",
+                        id="screen-title",
+                    )
+                with Center():
+                    yield Label(
+                        "Allocate simulated memory blocks.",
+                        id="screen-description",
+                        classes="short-description",
+                    )
 
-            # ── Help Panel ────────────────────────────────────────────────
             yield Static(
-                "[bold bright_cyan]🗺 Analogy Guide[/]\n"
-                "  Seat = [bold]Memory Block[/] (a contiguous region of memory)\n"
-                "  Seat assignment = [bold]Memory Allocation[/] (giving memory to a process)\n"
-                "  Passenger stands up = [bold]Deallocation[/] (freeing memory)\n"
-                "  Empty gaps = [bold]Fragmentation[/] (unusable small free blocks)\n"
-                "  Bus capacity = [bold]Total Memory Size[/]\n"
-                "  Strategy = How the driver picks which seat to assign",
-                id="help-panel",
+                "Bus seats are memory blocks; empty gaps are fragmentation.",
+                id="allocator-analogy",
+                classes="compact-help",
             )
 
             # ── Initialization Section ───────────────────────────────────
-            with Horizontal(classes="form-row"):
-                yield Label("Total Bus Capacity (Memory Size):", classes="field-label")
-                yield Input(placeholder="e.g. 1024", id="input-mem-size", classes="short-input")
-                yield Button("Initialize", id="btn-init", variant="primary")
+            with Horizontal(id="init-section", classes="form-row form-section"):
+                yield Label("Memory Size", classes="field-label")
+                yield Input(
+                    placeholder="e.g. 1024",
+                    id="input-mem-size",
+                    classes="short-input",
+                )
+                yield Button(
+                    "Initialize",
+                    id="btn-init",
+                    variant="primary",
+                    compact=True,
+                )
 
             yield Static("", id="error-display", classes="hidden")
+            yield Static("", id="memory-status", classes="status-line hidden")
 
-            # ── Action Section (hidden until init) ───────────────────────
-            with Vertical(id="action-section", classes="hidden"):
-                yield Label("Seat Assignment Strategy (Allocation)", classes="field-label")
+            # ── Allocation Section (hidden until init) ───────────────────
+            with Vertical(id="action-section", classes="form-section hidden"):
+                yield Label("Allocation Strategy", classes="field-label")
                 yield Select(
                     [(label, key) for label, key in _STRATEGIES],
                     id="select-strategy",
-                    prompt="Select Strategy...",
-                    value="first_fit"
+                    prompt="Select strategy...",
+                    value="first_fit",
                 )
 
                 with Horizontal(classes="form-row"):
-                    yield Label("Passenger ID (Process):", classes="field-label")
-                    yield Input(placeholder="e.g. P1", id="input-pid", classes="short-input")
-                    yield Label("Seats Needed (Size):", classes="field-label")
-                    yield Input(placeholder="e.g. 100", id="input-alloc-size", classes="short-input")
+                    yield Label("Process ID", classes="field-label")
+                    yield Input(
+                        placeholder="e.g. P1",
+                        id="input-pid",
+                        classes="short-input",
+                    )
+                    yield Label("Requested Size", classes="field-label")
+                    yield Input(
+                        placeholder="e.g. 100",
+                        id="input-alloc-size",
+                        classes="short-input",
+                    )
 
                 with Center():
-                    with Horizontal(classes="btn-group"):
-                        yield Button("Board (Allocate)", id="btn-alloc", variant="success")
-                        yield Button("Alight (Deallocate)", id="btn-dealloc", variant="warning")
+                    with Horizontal(classes="action-button-row"):
+                        yield Button(
+                            "Allocate",
+                            id="btn-alloc",
+                            variant="success",
+                            compact=True,
+                        )
+                        yield Button(
+                            "Free",
+                            id="btn-dealloc",
+                            variant="warning",
+                            compact=True,
+                        )
 
             # ── Results Area ─────────────────────────────────────────────
-            yield Static("", id="results-area", classes="hidden")
+            yield Static(
+                "Initialize memory to begin.",
+                id="results-area",
+                classes="result-section empty-state",
+            )
 
             with Center():
-                yield Button("← Back to Home", id="btn-back", variant="default")
+                yield Button("Back", id="btn-back", variant="default", compact=True)
         yield Footer()
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
@@ -137,7 +162,7 @@ class SeatAllocatorScreen(Screen):
     def _show_error(self, message: str) -> None:
         """Display an error message."""
         error_display = self.query_one("#error-display", Static)
-        error_display.update(f"[bold red]⚠ Error:[/] {message}")
+        error_display.update(f"[bold red]Error:[/] {message}")
         error_display.remove_class("hidden")
 
     def _hide_error(self) -> None:
@@ -156,17 +181,18 @@ class SeatAllocatorScreen(Screen):
             return
 
         self.query_one("#action-section").remove_class("hidden")
+        self.query_one("#init-section").add_class("hidden")
         self._update_display()
 
     def _allocate_memory(self) -> None:
         self._hide_error()
         if self.allocator is None:
-            self._show_error("Please initialize memory first.")
+            self._show_error("Initialize memory before allocating.")
             return
 
         strategy = self.query_one("#select-strategy", Select).value
         if strategy is Select.BLANK:
-            self._show_error("Please select a strategy.")
+            self._show_error("Select an allocation strategy.")
             return
 
         try:
@@ -182,8 +208,7 @@ class SeatAllocatorScreen(Screen):
 
         if not result.success:
             self._show_error(
-                f"Failed to allocate {result.size} units for "
-                f"{result.process_id} (No suitable block found)."
+                f"No free block can fit {result.size} units for {result.process_id}."
             )
             return
 
@@ -195,7 +220,7 @@ class SeatAllocatorScreen(Screen):
     def _deallocate_memory(self) -> None:
         self._hide_error()
         if self.allocator is None:
-            self._show_error("Please initialize memory first.")
+            self._show_error("Initialize memory before freeing memory.")
             return
 
         try:
@@ -208,7 +233,7 @@ class SeatAllocatorScreen(Screen):
             return
 
         if not result.success:
-            self._show_error(f"Failed to deallocate {result.process_id} (Process not found).")
+            self._show_error(f"Process {result.process_id} is not allocated.")
             return
 
         # Clear inputs on success
@@ -221,24 +246,52 @@ class SeatAllocatorScreen(Screen):
             return
 
         results_area = self.query_one("#results-area", Static)
-        
+
         blocks = self.allocator.get_blocks()
         summary = self.allocator.get_fragmentation_summary()
 
         bar_text = render_memory_bar(blocks)
         table = render_memory_table(blocks)
-        summary_table = render_fragmentation_summary(summary)
+        summary_table = render_fragmentation_summary(summary, self.allocator.total_size)
+        status = self.query_one("#memory-status", Static)
+        status.update(self._format_memory_status(summary))
+        status.remove_class("hidden")
 
         group = Group(
-            Panel(Text(bar_text, style="bright_cyan"), title="Memory Visualizer", border_style="cyan"),
+            Panel(
+                Text(bar_text, style="cyan"),
+                title="Memory Visualizer",
+                border_style="cyan",
+            ),
+            Text(""),
+            summary_table,
             Text(""),
             table,
-            Text(""),
-            summary_table
         )
 
         results_area.update(group)
+        results_area.remove_class("empty-state")
         results_area.remove_class("hidden")
+
+    def _format_memory_status(self, summary: dict[str, int]) -> str:
+        """Return a compact, at-a-glance memory status line."""
+        if self.allocator is None:
+            return ""
+
+        total_size = self.allocator.total_size
+        free_memory = summary["total_free_memory"]
+        used_memory = total_size - free_memory
+        free_blocks = summary["free_block_count"]
+        largest_free_block = summary["largest_free_block"]
+        allocated_blocks = summary["allocated_block_count"]
+
+        return (
+            f"Memory Size: {total_size} units | "
+            f"Used: {used_memory} | "
+            f"Free: {free_memory} | "
+            f"Largest Free Block: {largest_free_block} | "
+            f"Blocks: {allocated_blocks} allocated, {free_blocks} free"
+        )
 
     def action_go_back(self) -> None:
         """Pop back to the home screen."""

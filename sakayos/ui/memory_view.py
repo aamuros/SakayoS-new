@@ -11,7 +11,7 @@ from sakayos.core.models import MemoryBlock
 def render_memory_table(blocks: list[MemoryBlock]) -> Table:
     """Render a table showing all memory blocks."""
     table = Table(
-        title="💾 Memory Blocks",
+        title="Memory Blocks",
         show_header=True,
         header_style="bold bright_blue",
         border_style="dim",
@@ -64,10 +64,13 @@ def render_memory_bar(blocks: list[MemoryBlock], total_width: int = 60) -> str:
     return f"[{joined}]"
 
 
-def render_fragmentation_summary(summary: dict[str, int]) -> Table:
-    """Render the fragmentation metrics as a table."""
+def render_fragmentation_summary(
+    summary: dict[str, int],
+    total_size: int | None = None,
+) -> Table:
+    """Render compact memory usage and fragmentation metrics."""
     table = Table(
-        title="📊 Fragmentation Summary",
+        title="Memory Summary",
         show_header=False,
         border_style="dim",
         expand=True,
@@ -75,9 +78,12 @@ def render_fragmentation_summary(summary: dict[str, int]) -> Table:
     table.add_column("Metric", style="bold bright_cyan")
     table.add_column("Value", justify="right")
 
-    table.add_row("Total Free Memory", str(summary["total_free_memory"]))
+    free_memory = summary["total_free_memory"]
+    if total_size is not None:
+        table.add_row("Used Memory", str(total_size - free_memory))
+    table.add_row("Free Memory", str(free_memory))
     table.add_row("Largest Free Block", str(summary["largest_free_block"]))
-    table.add_row("Free Blocks Count", str(summary["free_block_count"]))
+    table.add_row("Free Blocks", str(summary["free_block_count"]))
     table.add_row("Allocated Blocks Count", str(summary["allocated_block_count"]))
 
     return table

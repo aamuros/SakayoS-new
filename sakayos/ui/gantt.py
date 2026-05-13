@@ -137,7 +137,7 @@ def render_gantt_table(timeline: list[TimelineEntry]) -> Table:
     Each row is a timeline entry with pid, start, end, and duration.
     """
     table = Table(
-        title="📊 Gantt Timeline",
+        title="Schedule Timeline",
         show_header=True,
         header_style="bold bright_cyan",
         border_style="dim",
@@ -182,7 +182,7 @@ def render_metrics_table(
         pid_order: optional ordering; defaults to sorted pids.
     """
     table = Table(
-        title="📈 Scheduling Metrics",
+        title="Detailed Metrics",
         show_header=True,
         header_style="bold bright_green",
         border_style="dim",

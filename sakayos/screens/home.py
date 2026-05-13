@@ -8,7 +8,7 @@ and Seat Allocator.
 from __future__ import annotations
 
 from textual.app import ComposeResult
-from textual.containers import Center, VerticalScroll
+from textual.containers import Center, Vertical, VerticalScroll
 from textual.screen import Screen
 from textual.widgets import Button, Footer, Header, Label, Static
 
@@ -24,61 +24,64 @@ class HomeScreen(Screen):
         yield Header()
         with VerticalScroll(id="home-container"):
             with Center():
-                yield Label("🚌  SakayOS", id="home-title")
+                yield Label("SakayOS", id="home-title")
             with Center():
                 yield Label(
-                    "Sakay! (Hop on!) — Learn Operating Systems through Metro "
-                    "Manila commuting. Processes are passengers, the CPU is "
-                    "the vehicle, scheduling is dispatching, and memory is "
-                    "the seat layout.",
+                    "A small operating systems lab with commuting-inspired modules.",
                     id="home-description",
                 )
+
+            with Vertical(id="module-list"):
+                with Vertical(classes="module-card"):
+                    yield Label("Passenger Manager", classes="module-title")
+                    yield Label(
+                        "View running OS processes.",
+                        classes="module-description",
+                    )
+                    yield Button(
+                        "Open",
+                        id="btn-passenger",
+                        variant="primary",
+                        compact=True,
+                    )
+
+                with Vertical(classes="module-card"):
+                    yield Label("Dispatch Scheduler", classes="module-title")
+                    yield Label(
+                        "Simulate CPU scheduling.",
+                        classes="module-description",
+                    )
+                    yield Button(
+                        "Open",
+                        id="btn-dispatch",
+                        variant="primary",
+                        compact=True,
+                    )
+
+                with Vertical(classes="module-card"):
+                    yield Label("Seat Allocator", classes="module-title")
+                    yield Label(
+                        "Simulate memory allocation.",
+                        classes="module-description",
+                    )
+                    yield Button(
+                        "Open",
+                        id="btn-seat",
+                        variant="primary",
+                        compact=True,
+                    )
+
             with Center():
                 yield Static(
-                    "[bold bright_cyan]Glossary:[/] "
-                    "Passenger = Process  •  Vehicle = CPU  •  "
-                    "Terminal Line = Ready Queue  •  "
-                    "Dispatching = Scheduling  •  Seat = Memory Block",
+                    "[dim]Glossary: passenger = process, vehicle = CPU, seat = memory block[/]",
                     id="home-glossary",
                 )
             with Center():
                 yield Button(
-                    "🧑‍🤝‍🧑  Passenger Manager",
-                    id="btn-passenger",
-                    variant="primary",
-                )
-            with Center():
-                yield Label(
-                    "Process Viewer — see who's on the bus",
-                    classes="module-hint",
-                )
-            with Center():
-                yield Button(
-                    "🚏  Dispatch Scheduler",
-                    id="btn-dispatch",
-                    variant="primary",
-                )
-            with Center():
-                yield Label(
-                    "CPU Scheduling — decide which passenger rides next",
-                    classes="module-hint",
-                )
-            with Center():
-                yield Button(
-                    "💺  Seat Allocator",
-                    id="btn-seat",
-                    variant="primary",
-                )
-            with Center():
-                yield Label(
-                    "Memory Allocation — assign seats on the bus",
-                    classes="module-hint",
-                )
-            with Center():
-                yield Button(
-                    "❌  Quit",
+                    "Quit",
                     id="btn-quit",
                     variant="error",
+                    compact=True,
                 )
         yield Footer()
 

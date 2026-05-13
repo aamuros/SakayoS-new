@@ -1,19 +1,15 @@
 """Dispatch Scheduler screen — interactive CPU scheduling simulation.
 
-Users can:
+Users can follow a short workflow:
 1. Choose an algorithm (FCFS, SJF, Round Robin, Priority).
 2. Enter process data (pid, arrival_time, burst_time, [priority]).
-3. Optionally enter a quantum (Round Robin only).
-4. Run the simulation and view:
-   - Process input table
-   - Gantt timeline
-   - Metrics table (completion, turnaround, waiting time)
+3. Run the simulation and review summary, schedule, and metrics.
 """
 
 from __future__ import annotations
 
 from textual.app import ComposeResult
-from textual.containers import Center, Horizontal, VerticalScroll
+from textual.containers import Center, Horizontal, Vertical, VerticalScroll
 from textual.screen import Screen
 from textual.widgets import (
     Button,
@@ -43,10 +39,10 @@ _ALGORITHMS = [
 ]
 
 _ALGO_HINT = {
-    "fcfs": "Enter processes: pid, arrival_time, burst_time (one per line)",
-    "sjf": "Enter processes: pid, arrival_time, burst_time (one per line)",
-    "rr": "Enter processes: pid, arrival_time, burst_time (one per line)",
-    "priority": "Enter processes: pid, arrival_time, burst_time, priority (one per line)",
+    "fcfs": "Format: PID, arrival, burst. Passenger = process.",
+    "sjf": "Format: PID, arrival, burst. Shorter burst times run earlier.",
+    "rr": "Format: PID, arrival, burst. Add a time quantum below.",
+    "priority": "Format: PID, arrival, burst, priority. Lower priority number runs first.",
 }
 
 _ALGO_EXAMPLE = {
@@ -55,6 +51,80 @@ _ALGO_EXAMPLE = {
     "rr": "P1, 0, 5\nP2, 1, 3\nP3, 2, 1",
     "priority": "P1, 0, 4, 3\nP2, 0, 2, 1\nP3, 0, 3, 2",
 }
+
+_EMPTY_RESULTS_MESSAGE = (
+    "No simulation yet. Choose an algorithm, load an example, "
+    "or enter your own processes."
+)
+
+
+def _render_metrics_summary(metrics: dict[str, dict[str, float]]) -> Table:
+    """Render compact average scheduling metrics."""
+    table = Table(
+        title="Key Metrics",
+        show_header=False,
+        border_style="dim",
+        expand=True,
+    )
+    table.add_column("Metric", style="bold")
+    table.add_column("Value", justify="right")
+
+    count = len(metrics)
+    if count == 0:
+        return table
+
+    avg_turnaround = sum(m["turnaround_time"] for m in metrics.values()) / count
+    avg_waiting = sum(m["waiting_time"] for m in metrics.values()) / count
+    last_completion = max(m["completion_time"] for m in metrics.values())
+
+    table.add_row("Processes", str(count))
+    table.add_row("Average Turnaround", f"{avg_turnaround:.2f}")
+    table.add_row("Average Waiting", f"{avg_waiting:.2f}")
+    table.add_row("Finished At", str(int(last_completion)))
+    return table
+
+
+def _short_error_message(message: str) -> str:
+    """Convert validation details into concise UI guidance."""
+    if "No process data provided" in message or "No valid process lines" in message:
+        return "Enter at least one process."
+    if "Quantum cannot be empty" in message:
+        return "Enter a time quantum for Round Robin."
+    if "Quantum must be an integer" in message:
+        return "Use a whole number for time quantum."
+    if "Quantum must be positive" in message:
+        return "Use a positive time quantum."
+    if "Expected 4 fields" in message:
+        return "Priority needs: PID, arrival, burst, priority."
+    if "Expected at least 3 fields" in message:
+        return "Use: PID, arrival, burst."
+    if "Too many fields" in message:
+        return "Use at most: PID, arrival, burst, priority."
+    if "arrival_time must be an integer" in message:
+        return "Arrival time must be a whole number."
+    if "burst_time must be an integer" in message:
+        return "Burst time must be a whole number."
+    if "priority must be an integer" in message:
+        return "Priority must be a whole number."
+    if "PID cannot be empty" in message:
+        return "Each process needs a PID."
+    if "PID cannot contain whitespace" in message:
+        return "Use a PID without spaces."
+    if "PID cannot contain commas" in message:
+        return "Use a PID without commas."
+    if "arrival_time" in message and "<=" in message:
+        return "Arrival time is too large."
+    if "burst_time" in message and "<=" in message:
+        return "Burst time is too large."
+    if "priority" in message and "<=" in message:
+        return "Priority is too large."
+    if "arrival_time" in message and ">= 0" in message:
+        return "Arrival time cannot be negative."
+    if "burst_time" in message and "> 0" in message:
+        return "Burst time must be positive."
+    if "Scheduling error:" in message:
+        return message.removeprefix("Scheduling error: ").strip()
+    return message
 
 
 # ── Dispatch Screen ────────────────────────────────────────────────────────
@@ -69,93 +139,98 @@ class DispatchScreen(Screen):
 
     def compose(self) -> ComposeResult:
         yield Header()
-        with VerticalScroll(id="dispatch-container"):
+        with VerticalScroll(id="dispatch-container", classes="screen-container"):
             # ── Title ────────────────────────────────────────────────────
-            with Center():
-                yield Label(
-                    "🚏  Dispatch Scheduler  (CPU Scheduling)",
-                    id="screen-title",
-                )
-            with Center():
-                yield Label(
-                    "The dispatcher decides which passenger (process) gets to "
-                    "ride the vehicle (CPU) next. Choose a dispatching "
-                    "(scheduling) algorithm, enter passengers waiting in the "
-                    "terminal line (ready queue), and run the simulation.",
-                    id="screen-description",
-                )
+            with Vertical(classes="screen-header"):
+                with Center():
+                    yield Label(
+                        "Dispatch Scheduler",
+                        id="screen-title",
+                    )
+                with Center():
+                    yield Label(
+                        "Simulate CPU scheduling.",
+                        id="screen-description",
+                        classes="short-description",
+                    )
 
-            # ── Help Panel ────────────────────────────────────────────────
             yield Static(
-                "[bold bright_cyan]🗺 Analogy Guide[/]\n"
-                "  Passenger = [bold]Process[/] (a program waiting for CPU time)\n"
-                "  Vehicle = [bold]CPU[/] (the processor that runs code)\n"
-                "  Terminal line = [bold]Ready Queue[/] (processes waiting to run)\n"
-                "  Dispatching = [bold]Scheduling[/] (choosing who goes next)\n"
-                "  Arrival time = When the passenger reaches the terminal\n"
-                "  Burst time = How long the passenger rides the vehicle",
-                id="help-panel",
+                "Dispatcher = scheduler. Passenger = process.",
+                classes="compact-help",
             )
 
             # ── Algorithm selector ───────────────────────────────────────
-            yield Label("Dispatching Algorithm (Scheduling)", classes="field-label")
-            yield Select(
-                [(label, key) for key, label in _ALGORITHMS],
-                id="algo-select",
-                prompt="Select a scheduling algorithm…",
-            )
+            with Vertical(classes="form-section"):
+                yield Label("Step 1: Choose algorithm", classes="section-label")
+                yield Label("Scheduling Algorithm", classes="field-label")
+                yield Select(
+                    [(label, key) for key, label in _ALGORITHMS],
+                    id="algo-select",
+                    prompt="Select a scheduling algorithm...",
+                )
 
             # ── Hint label ───────────────────────────────────────────────
             yield Label("", id="input-hint", classes="hint-label")
 
             # ── Process input area ───────────────────────────────────────
-            yield Label("Passenger Data (Process Data)", classes="field-label")
-            yield TextArea(
-                "",
-                id="process-input",
-                language="text",
-            )
+            with Vertical(classes="form-section"):
+                yield Label("Step 2: Enter processes", classes="section-label")
+                yield Label("Processes", classes="field-label")
+                yield TextArea(
+                    "",
+                    id="process-input",
+                    language="text",
+                )
 
             # ── Quantum input (only for RR) ──────────────────────────────
-            yield Label(
-                "Time Quantum (Round Robin only)",
-                id="quantum-label",
-                classes="field-label hidden",
-            )
-            yield Input(
-                placeholder="e.g. 2",
-                id="quantum-input",
-                classes="hidden",
-            )
+            with Vertical(classes="form-section"):
+                yield Label(
+                    "Time Quantum",
+                    id="quantum-label",
+                    classes="field-label hidden",
+                )
+                yield Input(
+                    placeholder="e.g. 2",
+                    id="quantum-input",
+                    classes="hidden",
+                )
 
             # ── Action buttons ───────────────────────────────────────────
+            yield Label("Step 3: Run simulation", classes="section-label")
             with Center():
-                with Horizontal(classes="btn-group"):
+                with Horizontal(classes="action-button-row"):
                     yield Button(
-                        "▶  Run Simulation",
+                        "Run Simulation",
                         id="btn-run",
                         variant="success",
+                        compact=True,
                     )
                     yield Button(
-                        "📋  Load Example",
+                        "Load Example",
                         id="btn-example",
                         variant="primary",
+                        compact=True,
                     )
                     yield Button(
-                        "🗑  Clear",
+                        "Clear",
                         id="btn-clear",
                         variant="warning",
+                        compact=True,
                     )
 
             # ── Error display ────────────────────────────────────────────
             yield Static("", id="error-display", classes="hidden")
 
             # ── Results area ─────────────────────────────────────────────
-            yield Static("", id="results-area", classes="hidden")
+            yield Static(
+                _EMPTY_RESULTS_MESSAGE,
+                id="results-area",
+                classes="result-section empty-state",
+            )
 
             # ── Back button ──────────────────────────────────────────────
             with Center():
-                yield Button("← Back to Home", id="btn-back", variant="default")
+                yield Button("Back", id="btn-back", variant="default", compact=True)
         yield Footer()
 
     # ── Event handlers ──────────────────────────────────────────────────────
@@ -197,7 +272,7 @@ class DispatchScreen(Screen):
     def _show_error(self, message: str) -> None:
         """Display an error message."""
         error_display = self.query_one("#error-display", Static)
-        error_display.update(f"[bold red]⚠ Error:[/] {message}")
+        error_display.update(f"[bold red]Error:[/] {message}")
         error_display.remove_class("hidden")
 
     def _hide_error(self) -> None:
@@ -205,6 +280,13 @@ class DispatchScreen(Screen):
         error_display = self.query_one("#error-display", Static)
         error_display.update("")
         error_display.add_class("hidden")
+
+    def _show_empty_state(self) -> None:
+        """Display the initial results placeholder."""
+        results_area = self.query_one("#results-area", Static)
+        results_area.update(_EMPTY_RESULTS_MESSAGE)
+        results_area.remove_class("hidden")
+        results_area.add_class("empty-state")
 
     def _get_selected_algo(self) -> str | None:
         """Return the currently selected algorithm key, or None."""
@@ -224,7 +306,8 @@ class DispatchScreen(Screen):
         # 1. Validate algorithm selection.
         algo = self._get_selected_algo()
         if algo is None:
-            self._show_error("Please select a scheduling algorithm first.")
+            self._show_error("Select a scheduling algorithm first.")
+            self._show_empty_state()
             return
 
         process_input = self.query_one("#process-input", TextArea)
@@ -236,7 +319,8 @@ class DispatchScreen(Screen):
         try:
             result = run_scheduling_simulation(algo, raw_text, quantum_text)
         except ValueError as e:
-            self._show_error(str(e))
+            self._show_error(_short_error_message(str(e)))
+            self._show_empty_state()
             return
 
         self._display_results(
@@ -258,7 +342,7 @@ class DispatchScreen(Screen):
 
         # Build the input process table.
         input_table = Table(
-            title="📝 Input Processes",
+            title="Input Processes",
             show_header=True,
             header_style="bold bright_yellow",
             border_style="dim",
@@ -283,40 +367,46 @@ class DispatchScreen(Screen):
         # Build the metrics table.
         pid_order = [p.pid for p in processes]
         metrics_table = render_metrics_table(metrics, pid_order=pid_order)
+        summary_table = _render_metrics_summary(metrics)
 
         # Compose the output.
         algo_names = dict(_ALGORITHMS)
         algo_label = algo_names.get(algo, algo)
-
 
         results_area.update("")
 
         from rich.console import Group
         from rich.panel import Panel
         from rich.text import Text as RichText
-
-        header_text = RichText(f"\n✅  Simulation Complete — {algo_label}\n", style="bold bright_green")
+        header_text = RichText(
+            f"Simulation complete: {algo_label} scheduled {len(processes)} processes.",
+            style="bold bright_green",
+        )
         gantt_text_renderable = RichText(gantt_text, style="bright_white")
 
         group = Group(
             header_text,
-            input_table,
             RichText(""),
             gantt_table,
             RichText(""),
-            Panel(gantt_text_renderable, title="Gantt Chart (Text)", border_style="bright_cyan"),
+            Panel(gantt_text_renderable, title="Schedule View", border_style="cyan"),
+            RichText(""),
+            summary_table,
             RichText(""),
             metrics_table,
+            RichText(""),
+            input_table,
         )
 
         results_area.update(group)
+        results_area.remove_class("empty-state")
         results_area.remove_class("hidden")
 
     def _load_example(self) -> None:
         """Load example data for the selected algorithm."""
         algo = self._get_selected_algo()
         if algo is None:
-            self._show_error("Please select an algorithm first to load an example.")
+            self._show_error("Select a scheduling algorithm first.")
             return
 
         self._hide_error()
@@ -339,9 +429,7 @@ class DispatchScreen(Screen):
         quantum_input = self.query_one("#quantum-input", Input)
         quantum_input.value = ""
 
-        results_area = self.query_one("#results-area", Static)
-        results_area.update("")
-        results_area.add_class("hidden")
+        self._show_empty_state()
 
     def action_go_back(self) -> None:
         """Pop back to the home screen."""

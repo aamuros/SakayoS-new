@@ -8,7 +8,7 @@ No process modification is performed.
 from __future__ import annotations
 
 from textual.app import ComposeResult
-from textual.containers import Center, Horizontal, VerticalScroll
+from textual.containers import Center, Horizontal, Vertical, VerticalScroll
 from textual.screen import Screen
 from textual.widgets import (
     Button,
@@ -19,6 +19,7 @@ from textual.widgets import (
     Static,
 )
 
+from rich import box
 from rich.table import Table
 from rich.text import Text
 
@@ -39,6 +40,9 @@ _LIMIT_OPTIONS = [
     ("All", None),
 ]
 
+_SORT_LABELS = {key: label for label, key in _SORT_OPTIONS}
+_LIMIT_LABELS = {value: label for label, value in _LIMIT_OPTIONS}
+
 
 def render_process_table(processes: list[ProcessInfo]) -> Table:
     """Render a list of ProcessInfo as a Rich Table.
@@ -46,13 +50,15 @@ def render_process_table(processes: list[ProcessInfo]) -> Table:
     This is a pure helper — no side effects, no psutil calls.
     """
     table = Table(
-        title="🧑‍🤝‍🧑 Passengers on the Bus (Processes)",
+        title="Processes",
         show_header=True,
-        header_style="bold bright_yellow",
+        header_style="bold",
         border_style="dim",
+        box=box.SIMPLE_HEAVY,
+        row_styles=["", "dim"],
         expand=True,
     )
-    table.add_column("PID", justify="right", width=8, style="bold")
+    table.add_column("PID", justify="right", width=8, style="cyan")
     table.add_column("Name", width=24)
     table.add_column("Status", width=12)
     table.add_column("CPU %", justify="right", width=10)
@@ -88,68 +94,63 @@ class PassengerScreen(Screen):
 
     def compose(self) -> ComposeResult:
         yield Header()
-        with VerticalScroll(id="passenger-container"):
+        with VerticalScroll(id="passenger-container", classes="screen-container"):
             # ── Title ────────────────────────────────────────────────────
-            with Center():
-                yield Label(
-                    "🧑‍🤝‍🧑  Passenger Manager  (Process Viewer)",
-                    id="screen-title",
-                )
-            with Center():
-                yield Label(
-                    "Every running process on your system is a passenger on "
-                    "the bus. This read-only view shows who is currently "
-                    "riding — their PID, name, CPU and memory usage, and "
-                    "status. No processes are modified.",
-                    id="screen-description",
-                )
+            with Vertical(classes="screen-header"):
+                with Center():
+                    yield Label(
+                        "Passenger Manager",
+                        id="screen-title",
+                    )
+                with Center():
+                    yield Label(
+                        "View running OS processes in a read-only table.",
+                        id="screen-description",
+                        classes="short-description",
+                    )
 
-            # ── Help Panel ────────────────────────────────────────────────
             yield Static(
-                "[bold bright_cyan]🗺 Analogy Guide[/]\n"
-                "  Passenger = [bold]Process[/] (a running program)\n"
-                "  Boarding the bus = Process is [bold]running[/]\n"
-                "  Waiting at the terminal = Process is [bold]sleeping/waiting[/]\n"
-                "  PID = Passenger's ticket number\n"
-                "  CPU % = How much of the vehicle's engine the passenger uses\n"
-                "  Mem % = How many seats the passenger occupies",
-                id="help-panel",
+                "Read-only: this screen does not modify processes.",
+                classes="compact-help",
             )
 
             # ── Controls ─────────────────────────────────────────────────
-            with Horizontal(classes="form-row"):
+            with Horizontal(classes="form-row form-section"):
                 yield Label("Sort by:", classes="field-label")
                 yield Select(
                     [(label, key) for label, key in _SORT_OPTIONS],
                     id="select-sort",
-                    prompt="Sort by…",
+                    prompt="Sort by...",
                     value="pid",
                 )
                 yield Label("Show:", classes="field-label")
                 yield Select(
                     [(label, val) for label, val in _LIMIT_OPTIONS],
                     id="select-limit",
-                    prompt="Row limit…",
+                    prompt="Row limit...",
                     value=25,
                 )
 
             with Center():
-                with Horizontal(classes="btn-group"):
+                with Horizontal(classes="action-button-row"):
                     yield Button(
-                        "🔄  Refresh",
+                        "Refresh",
                         id="btn-refresh",
                         variant="success",
+                        compact=True,
                     )
+
+            yield Static("", id="status-line", classes="status-line hidden")
 
             # ── Error display ────────────────────────────────────────────
             yield Static("", id="error-display", classes="hidden")
 
             # ── Results area ─────────────────────────────────────────────
-            yield Static("", id="results-area", classes="hidden")
+            yield Static("", id="results-area", classes="result-section hidden")
 
             # ── Back button ──────────────────────────────────────────────
             with Center():
-                yield Button("← Back to Home", id="btn-back", variant="default")
+                yield Button("Back", id="btn-back", variant="default", compact=True)
         yield Footer()
 
     # ── Lifecycle ────────────────────────────────────────────────────────
@@ -187,7 +188,7 @@ class PassengerScreen(Screen):
     def _show_error(self, message: str) -> None:
         """Display an error message."""
         error_display = self.query_one("#error-display", Static)
-        error_display.update(f"[bold red]⚠ Error:[/] {message}")
+        error_display.update(f"[bold red]Error:[/] {message}")
         error_display.remove_class("hidden")
 
     def _hide_error(self) -> None:
@@ -200,6 +201,7 @@ class PassengerScreen(Screen):
         """Fetch process data from process_reader and display it."""
         self._hide_error()
         results_area = self.query_one("#results-area", Static)
+        status_line = self.query_one("#status-line", Static)
 
         # Read sort selection
         sort_select = self.query_one("#select-sort", Select)
@@ -213,31 +215,50 @@ class PassengerScreen(Screen):
             processes = list_processes(sort_by=str(sort_by), limit=limit)
         except ValueError as e:
             self._show_error(str(e))
+            results_area.update(
+                "[bold]Process list unavailable.[/]\n"
+                "[dim]Adjust the controls and refresh.[/]"
+            )
+            results_area.add_class("empty-state")
+            results_area.remove_class("hidden")
+            status_line.update("")
+            status_line.add_class("hidden")
             return
         except Exception as e:
-            self._show_error(f"Unexpected error reading processes: {e}")
+            self._show_error(f"Could not read processes: {e}")
+            results_area.update(
+                "[bold]Process list unavailable.[/]\n"
+                "[dim]Refresh after checking process access on this system.[/]"
+            )
+            results_area.add_class("empty-state")
+            results_area.remove_class("hidden")
+            status_line.update("")
+            status_line.add_class("hidden")
             return
 
         if not processes:
             results_area.update(
-                "[bold yellow]ℹ No accessible processes found.[/]\n"
-                "This may happen if psutil cannot read process data on "
-                "this system."
+                "[bold]No accessible processes found.[/]\n"
+                "[dim]Refresh or try a smaller limit if process data is restricted.[/]"
             )
+            results_area.add_class("empty-state")
             results_area.remove_class("hidden")
+            status_line.update("")
+            status_line.add_class("hidden")
             return
 
         table = render_process_table(processes)
 
         from rich.console import Group
 
-        count_text = Text(
-            f"\nShowing {len(processes)} process(es)  •  "
-            f"Sorted by: {sort_by}  •  "
-            f"Limit: {limit if limit is not None else 'All'}\n",
-            style="dim",
+        status_line.update(
+            f"Showing {len(processes)} processes | "
+            f"Sorted by {_SORT_LABELS.get(str(sort_by), str(sort_by))} | "
+            f"Limit {_LIMIT_LABELS.get(limit, limit)}"
         )
+        status_line.remove_class("hidden")
 
-        group = Group(count_text, table)
+        group = Group(table)
         results_area.update(group)
+        results_area.remove_class("empty-state")
         results_area.remove_class("hidden")
