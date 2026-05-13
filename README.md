@@ -34,8 +34,16 @@ SakayOS is an interactive terminal UI (built with [Textual](https://textual.text
 
 ### Install Dependencies
 
+For running the application:
+
 ```bash
-pip install -r requirements.txt
+python -m pip install -r requirements.txt
+```
+
+For development and tests:
+
+```bash
+python -m pip install -e ".[dev]"
 ```
 
 ### Run the Application
@@ -52,6 +60,7 @@ python -m sakayos.app
 
 ```bash
 python -m pytest tests/ -v
+python -m ruff check sakayos/ tests/
 ```
 
 ## Project Structure
@@ -106,8 +115,8 @@ tests/
 | `textual` | Terminal UI framework               |
 | `rich`    | Rich text rendering (used by Textual) |
 | `psutil`  | System process information          |
-| `pytest`  | Testing                             |
-| `ruff`    | Linting (dev)                       |
+| `pytest`  | Testing (dev extra)                 |
+| `ruff`    | Linting (dev extra)                 |
 
 ## Current Status
 

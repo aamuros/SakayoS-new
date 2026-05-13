@@ -1,5 +1,7 @@
+# Runtime dependencies for compatibility with:
+#   python -m pip install -r requirements.txt
+#
+# Keep this aligned with [project.dependencies] in pyproject.toml.
 textual
 rich
 psutil
-pytest
-ruff
