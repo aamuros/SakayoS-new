@@ -260,15 +260,27 @@ def calculate_metrics(
         return {}
 
     # Build a lookup of arrival_time and burst_time by pid.
+    _validate_no_duplicate_pids(processes)
     proc_map = {p.pid: p for p in processes}
 
     # Find the completion time for each process (last timeline entry's end).
     completion: dict[str, int] = {}
+    executed_time = dict.fromkeys(proc_map, 0)
     for entry in timeline:
+        if entry.pid not in proc_map:
+            raise ValueError(f"Timeline contains unknown pid: {entry.pid!r}")
         completion[entry.pid] = entry.end  # last one wins
+        executed_time[entry.pid] += entry.duration
 
     metrics: dict[str, dict[str, float]] = {}
     for pid, proc in proc_map.items():
+        if pid not in completion:
+            raise ValueError(f"Timeline is missing process {pid!r}")
+        if executed_time[pid] != proc.burst_time:
+            raise ValueError(
+                f"Timeline duration for process {pid!r} must match burst_time "
+                f"{proc.burst_time}, got {executed_time[pid]}"
+            )
         ct = completion[pid]
         tat = ct - proc.arrival_time
         wt = tat - proc.burst_time

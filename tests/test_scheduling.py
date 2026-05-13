@@ -340,3 +340,40 @@ class TestCalculateMetrics:
 
     def test_empty_inputs(self):
         assert calculate_metrics([], []) == {}
+
+    def test_duplicate_process_pid_raises(self):
+        procs = [
+            SchedulerProcess(pid="P1", arrival_time=0, burst_time=2),
+            SchedulerProcess(pid="P1", arrival_time=1, burst_time=3),
+        ]
+        timeline = [TimelineEntry(pid="P1", start=0, end=2)]
+
+        with pytest.raises(ValueError, match="[Dd]uplicate"):
+            calculate_metrics(procs, timeline)
+
+    def test_timeline_with_unknown_pid_raises(self):
+        procs = [SchedulerProcess(pid="P1", arrival_time=0, burst_time=2)]
+        timeline = [
+            TimelineEntry(pid="P1", start=0, end=2),
+            TimelineEntry(pid="P2", start=2, end=4),
+        ]
+
+        with pytest.raises(ValueError, match="unknown pid"):
+            calculate_metrics(procs, timeline)
+
+    def test_missing_timeline_entry_raises(self):
+        procs = [
+            SchedulerProcess(pid="P1", arrival_time=0, burst_time=2),
+            SchedulerProcess(pid="P2", arrival_time=0, burst_time=3),
+        ]
+        timeline = [TimelineEntry(pid="P1", start=0, end=2)]
+
+        with pytest.raises(ValueError, match="missing"):
+            calculate_metrics(procs, timeline)
+
+    def test_execution_duration_must_match_burst_time(self):
+        procs = [SchedulerProcess(pid="P1", arrival_time=0, burst_time=3)]
+        timeline = [TimelineEntry(pid="P1", start=0, end=2)]
+
+        with pytest.raises(ValueError, match="burst_time"):
+            calculate_metrics(procs, timeline)
