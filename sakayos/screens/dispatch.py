@@ -29,15 +29,8 @@ from textual.widgets import (
 from rich.table import Table
 
 from sakayos.core.models import SchedulerProcess, TimelineEntry
-from sakayos.core.scheduling import (
-    calculate_metrics,
-    schedule_fcfs,
-    schedule_priority,
-    schedule_round_robin,
-    schedule_sjf,
-)
+from sakayos.services.scheduling_service import run_scheduling_simulation
 from sakayos.ui.gantt import render_gantt_table, render_gantt_text, render_metrics_table
-from sakayos.ui.parsing import parse_process_block, parse_quantum
 
 
 # ── Algorithm registry ──────────────────────────────────────────────────────
@@ -234,59 +227,24 @@ class DispatchScreen(Screen):
             self._show_error("Please select a scheduling algorithm first.")
             return
 
-        # 2. Parse process input.
         process_input = self.query_one("#process-input", TextArea)
         raw_text = process_input.text
-
-        require_priority = algo == "priority"
+        quantum_text: str | None = None
+        if algo == "rr":
+            quantum_text = self.query_one("#quantum-input", Input).value
 
         try:
-            processes = parse_process_block(raw_text, require_priority=require_priority)
+            result = run_scheduling_simulation(algo, raw_text, quantum_text)
         except ValueError as e:
             self._show_error(str(e))
             return
 
-        # 3. Parse quantum if Round Robin.
-        quantum: int | None = None
-        if algo == "rr":
-            quantum_input = self.query_one("#quantum-input", Input)
-            try:
-                quantum = parse_quantum(quantum_input.value)
-            except ValueError as e:
-                self._show_error(str(e))
-                return
-
-        # 4. Run the scheduler.
-        try:
-            timeline = self._dispatch(algo, processes, quantum)
-        except ValueError as e:
-            self._show_error(f"Scheduling error: {e}")
-            return
-
-        # 5. Calculate metrics.
-        metrics = calculate_metrics(processes, timeline)
-
-        # 6. Build and display results.
-        self._display_results(algo, processes, timeline, metrics)
-
-    def _dispatch(
-        self,
-        algo: str,
-        processes: list[SchedulerProcess],
-        quantum: int | None,
-    ) -> list[TimelineEntry]:
-        """Dispatch to the correct scheduling function."""
-        if algo == "fcfs":
-            return schedule_fcfs(processes)
-        elif algo == "sjf":
-            return schedule_sjf(processes)
-        elif algo == "rr":
-            assert quantum is not None
-            return schedule_round_robin(processes, quantum=quantum)
-        elif algo == "priority":
-            return schedule_priority(processes)
-        else:
-            raise ValueError(f"Unknown algorithm: {algo!r}")
+        self._display_results(
+            result.algorithm,
+            result.processes,
+            result.timeline,
+            result.metrics,
+        )
 
     def _display_results(
         self,

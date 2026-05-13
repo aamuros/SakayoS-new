@@ -27,12 +27,16 @@ from rich.panel import Panel
 from rich.text import Text
 
 from sakayos.core.memory import MemoryAllocator
+from sakayos.services.memory_service import (
+    initialize_memory_allocator,
+    run_memory_allocation,
+    run_memory_deallocation,
+)
 from sakayos.ui.memory_view import (
     render_memory_bar,
     render_memory_table,
     render_fragmentation_summary,
 )
-from sakayos.ui.parsing import parse_memory_size, parse_process_id
 
 _STRATEGIES = [
     ("First Fit", "first_fit"),
@@ -146,12 +150,11 @@ class SeatAllocatorScreen(Screen):
         self._hide_error()
         raw_size = self.query_one("#input-mem-size", Input).value
         try:
-            size = parse_memory_size(raw_size)
+            self.allocator = initialize_memory_allocator(raw_size)
         except ValueError as e:
             self._show_error(str(e))
             return
 
-        self.allocator = MemoryAllocator(total_size=size)
         self.query_one("#action-section").remove_class("hidden")
         self._update_display()
 
@@ -166,24 +169,22 @@ class SeatAllocatorScreen(Screen):
             self._show_error("Please select a strategy.")
             return
 
-        raw_pid = self.query_one("#input-pid", Input).value
-        raw_size = self.query_one("#input-alloc-size", Input).value
-
         try:
-            pid = parse_process_id(raw_pid)
-            size = parse_memory_size(raw_size)
+            result = run_memory_allocation(
+                self.allocator,
+                self.query_one("#input-pid", Input).value,
+                self.query_one("#input-alloc-size", Input).value,
+                str(strategy),
+            )
         except ValueError as e:
             self._show_error(str(e))
             return
 
-        try:
-            success = self.allocator.allocate(pid, size, str(strategy))
-        except ValueError as e:
-            self._show_error(str(e))
-            return
-
-        if not success:
-            self._show_error(f"Failed to allocate {size} units for {pid} (No suitable block found).")
+        if not result.success:
+            self._show_error(
+                f"Failed to allocate {result.size} units for "
+                f"{result.process_id} (No suitable block found)."
+            )
             return
 
         # Clear inputs on success
@@ -197,16 +198,17 @@ class SeatAllocatorScreen(Screen):
             self._show_error("Please initialize memory first.")
             return
 
-        raw_pid = self.query_one("#input-pid", Input).value
         try:
-            pid = parse_process_id(raw_pid)
+            result = run_memory_deallocation(
+                self.allocator,
+                self.query_one("#input-pid", Input).value,
+            )
         except ValueError as e:
             self._show_error(str(e))
             return
 
-        success = self.allocator.deallocate(pid)
-        if not success:
-            self._show_error(f"Failed to deallocate {pid} (Process not found).")
+        if not result.success:
+            self._show_error(f"Failed to deallocate {result.process_id} (Process not found).")
             return
 
         # Clear inputs on success
@@ -241,4 +243,3 @@ class SeatAllocatorScreen(Screen):
     def action_go_back(self) -> None:
         """Pop back to the home screen."""
         self.app.pop_screen()
-
