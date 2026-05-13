@@ -1,12 +1,12 @@
-# SakayOS 🚌
+# SakayOS
 
-A terminal-based educational Python dashboard that teaches Operating Systems concepts — process management, CPU scheduling, and memory allocation — through a Metro Manila commuting analogy.
+A terminal-based educational Python dashboard that teaches Operating Systems concepts through a Metro Manila commuting analogy.
 
 > **Course Project** — Operating Systems
 
 ## What SakayOS Is
 
-SakayOS is an interactive terminal UI (built with [Textual](https://textual.textualize.io/)) that helps students visualise and experiment with core OS concepts:
+SakayOS is an interactive terminal UI built with [Textual](https://textual.textualize.io/). It helps students visualise and experiment with selected OS concepts:
 
 | Module               | OS Concept                  | Analogy                          |
 |----------------------|-----------------------------|----------------------------------|
@@ -14,54 +14,104 @@ SakayOS is an interactive terminal UI (built with [Textual](https://textual.text
 | Dispatch Scheduler   | CPU scheduling simulation   | Dispatcher = CPU scheduler       |
 | Seat Allocator       | Memory allocation simulation| Bus seats = memory blocks        |
 
-## What SakayOS Does **Not** Do
+SakayOS is not a real operating system. It is a classroom simulator and viewer for learning purposes.
 
-- **Does not replace the real OS scheduler.** Dispatch Scheduler runs textbook algorithms (FCFS, SJF, Round Robin, Priority) on user-provided input — it is a *simulation only*.
-- **Does not control real system memory.** Seat Allocator demonstrates First Fit / Best Fit / Worst Fit on a simulated memory layout.
-- **Does not require root/admin privileges.** Process reading uses `psutil` with graceful fallback for restricted fields.
+## Simulation Limits
+
+- Dispatch Scheduler does not replace or control the host OS scheduler. It runs textbook FCFS, SJF, Round Robin, and Priority Scheduling on sample input.
+- Seat Allocator does not allocate or free real system memory. It demonstrates First Fit, Best Fit, and Worst Fit on a simulated memory layout.
+- Passenger Manager reads process information through `psutil`, but it does not kill, pause, resume, or reprioritize processes.
+- Process data can vary by operating system and permissions. Some fields may be unavailable on locked-down systems.
+- The simulations intentionally simplify real OS behavior so the concepts are easier to inspect in a course-project setting.
 
 ## Platform
 
 - **Primary target:** Linux (process data via `psutil`)
 - **Development:** macOS is supported for development, but some `psutil` fields may differ.
 - **Windows:** Not officially supported.
+- **Python:** 3.10 or newer, as declared in `pyproject.toml`.
 
 ## Getting Started
 
 ### Prerequisites
 
 - Python 3.10+
+- `pip`
+- `venv` support if you want an isolated environment
 
 ### Install Dependencies
 
-For running the application:
+Recommended development setup:
+
+```bash
+python3 -m venv .venv
+. .venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install -e ".[dev]"
+```
+
+The editable install uses `pyproject.toml` and includes the development tools from the `dev` extra.
+
+For runtime-only installs, the project also keeps `requirements.txt` for the Ubuntu setup script:
 
 ```bash
 python -m pip install -r requirements.txt
 ```
 
-For development and tests:
+### Run the Application
+
+From an editable install:
 
 ```bash
-python -m pip install -e ".[dev]"
+sakayos
 ```
 
-### Run the Application
+From the project directory:
 
 ```bash
 chmod +x run.sh
 ./run.sh
+```
 
-# Or directly:
+Direct module command:
+
+```bash
 python -m sakayos.app
 ```
 
 ### Run Tests
 
+Project test script:
+
+```bash
+chmod +x scripts/run_tests.sh
+./scripts/run_tests.sh
+```
+
+Direct pytest command:
+
 ```bash
 python -m pytest tests/ -v
+```
+
+### Run Lint
+
+```bash
 python -m ruff check sakayos/ tests/
 ```
+
+`scripts/run_tests.sh` runs pytest first and then runs Ruff if it is installed.
+
+## Current Modules
+
+| Area | Files | Purpose |
+|---|---|---|
+| App shell | `sakayos/app.py`, `sakayos/app.tcss` | Textual application entry point and styling |
+| Core | `sakayos/core/` | Data models, process reading, scheduling algorithms, memory algorithms, scheduling scenario import/export |
+| Services | `sakayos/services/` | Thin service layer used by screens to call core logic |
+| Screens | `sakayos/screens/` | Textual screens for home, Passenger Manager, Dispatch Scheduler, and Seat Allocator |
+| UI helpers | `sakayos/ui/` | Rendering and parsing helpers for Gantt charts, memory views, and form inputs |
+| Tests | `tests/` | Unit, rendering, parsing, and smoke tests |
 
 ## Project Structure
 
@@ -76,6 +126,11 @@ sakayos/
     scheduling.py           # CPU scheduling algorithms (FCFS, SJF, RR, Priority)
     memory.py               # Memory allocation (First/Best/Worst Fit)
     process_reader.py       # psutil-based process reader
+    scenarios.py            # Scheduling scenario JSON import/export helpers
+  services/
+    __init__.py
+    scheduling_service.py   # Service wrapper for scheduling operations
+    memory_service.py       # Service wrapper for memory allocation operations
   ui/
     __init__.py
     gantt.py                # Gantt chart and metrics table rendering
@@ -92,6 +147,8 @@ scripts/
   run_tests.sh              # Runs pytest + ruff
 docs/
   DEPLOYMENT.md             # Ubuntu bootable USB deployment guide
+  DEVELOPER_GUIDE.md        # Short guide for extending the project
+  SCHEDULING_SCENARIOS.md   # Scheduling scenario JSON format
 tests/
   __init__.py
   test_smoke.py             # Smoke test — verifies package imports
@@ -107,6 +164,17 @@ tests/
   test_passenger_view.py    # Process table rendering tests
 ```
 
+## Developer Guide
+
+See [`docs/DEVELOPER_GUIDE.md`](docs/DEVELOPER_GUIDE.md) for the short contributor guide.
+
+In brief:
+
+- Put OS concept logic in `sakayos/core/`.
+- Keep Textual widgets and screen behavior in `sakayos/screens/`.
+- Put reusable rendering and parsing helpers in `sakayos/ui/`.
+- Use `sakayos/services/` when a screen needs a small adapter around core logic.
+- Add tests in `tests/` beside the behavior being changed.
 
 ## Dependencies
 
@@ -127,4 +195,4 @@ tests/
 > - **Seat Allocator** — memory allocation simulation (First/Best/Worst Fit) with fragmentation visualization.
 > - Metro Manila commuting analogy labels are applied throughout the UI.
 > - Ubuntu bootable USB deployment guide available at `docs/DEPLOYMENT.md`.
-> - Run with `./run.sh` or `python -m sakayos.app`.
+> - Run with `sakayos`, `./run.sh`, or `python -m sakayos.app`.

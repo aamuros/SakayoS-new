@@ -71,6 +71,15 @@ This will:
 3. Install all packages from `requirements.txt` into the venv.
 4. Verify that `sakayos.app` can be imported.
 
+For development on a machine where you plan to edit the project, use the `pyproject.toml` install instead:
+
+```bash
+. .venv/bin/activate
+python -m pip install -e ".[dev]"
+```
+
+That installs SakayOS in editable mode and includes the test and lint tools.
+
 ### 3. Launch SakayOS
 
 ```bash
@@ -80,6 +89,12 @@ This will:
 Or directly:
 ```bash
 .venv/bin/python -m sakayos.app
+```
+
+If you installed with `python -m pip install -e ".[dev]"`, you can also run:
+
+```bash
+sakayos
 ```
 
 The terminal UI will launch. Use the arrow keys, Enter, and Tab to navigate.
@@ -93,6 +108,13 @@ chmod +x scripts/run_tests.sh
 
 This runs `pytest` and `ruff` (if installed) against the full test suite.
 
+Direct commands:
+
+```bash
+python -m pytest tests/ -v
+python -m ruff check sakayos/ tests/
+```
+
 ---
 
 ## Project Scripts
@@ -102,6 +124,7 @@ This runs `pytest` and `ruff` (if installed) against the full test suite.
 | `run.sh` | Launch SakayOS (auto-detects `.venv`) |
 | `scripts/setup_ubuntu.sh` | One-time setup: venv + deps + verify |
 | `scripts/run_tests.sh` | Run pytest + ruff |
+| `pyproject.toml` | Project metadata, Python requirement, package entry point, and dev extras |
 
 ---
 
