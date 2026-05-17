@@ -7,6 +7,7 @@ Converts a list[TimelineEntry] into readable text representations:
 
 from __future__ import annotations
 
+from rich import box
 from rich.table import Table
 from rich.text import Text
 
@@ -16,14 +17,14 @@ from sakayos.core.models import TimelineEntry
 # ── Color palette for processes ─────────────────────────────────────────────
 
 _COLORS = [
-    "bright_cyan",
-    "bright_magenta",
-    "bright_yellow",
-    "bright_green",
-    "bright_red",
-    "bright_blue",
-    "deep_pink3",
-    "dark_orange",
+    "#2dd4bf",
+    "#f59e0b",
+    "#22c55e",
+    "#7dd3fc",
+    "#fb7185",
+    "#a78bfa",
+    "#f472b6",
+    "#f97316",
 ]
 
 
@@ -139,11 +140,13 @@ def render_gantt_table(timeline: list[TimelineEntry]) -> Table:
     table = Table(
         title="Schedule Timeline",
         show_header=True,
-        header_style="bold bright_cyan",
-        border_style="dim",
+        header_style="bold #7dd3fc",
+        border_style="#334155",
+        box=box.SIMPLE,
+        row_styles=["", "#94a3b8"],
         expand=True,
     )
-    table.add_column("#", style="dim", width=4, justify="right")
+    table.add_column("#", style="#64748b", width=4, justify="right")
     table.add_column("PID", style="bold", width=8)
     table.add_column("Start", justify="right", width=8)
     table.add_column("End", justify="right", width=8)
@@ -184,11 +187,13 @@ def render_metrics_table(
     table = Table(
         title="Detailed Metrics",
         show_header=True,
-        header_style="bold bright_green",
-        border_style="dim",
+        header_style="bold #22c55e",
+        border_style="#334155",
+        box=box.SIMPLE,
+        row_styles=["", "#94a3b8"],
         expand=True,
     )
-    table.add_column("PID", style="bold", width=8)
+    table.add_column("PID", style="bold #2dd4bf", width=8)
     table.add_column("Completion", justify="right", width=12)
     table.add_column("Turnaround", justify="right", width=12)
     table.add_column("Waiting", justify="right", width=12)

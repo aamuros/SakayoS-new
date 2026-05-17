@@ -1,9 +1,4 @@
-"""Home screen for SakayOS.
-
-Presents the project as a compact transit operations dashboard with
-navigation cards for the Passenger Manager, Dispatch Scheduler, and
-Seat Allocator modules.
-"""
+"""Home screen for SakayOS."""
 
 from __future__ import annotations
 
@@ -29,20 +24,26 @@ class HomeScreen(Screen):
             with Vertical(id="home-hero"):
                 yield Label("SakayOS", id="home-title")
                 yield Label(
-                    "Operating systems concepts through Metro Manila commuting",
+                    "Transit Control for Operating Systems Concepts",
                     id="home-description",
                 )
                 yield Label(
-                    "Control Room / Learning Dashboard",
+                    "Choose a module, run a scenario, read the system state.",
                     id="home-kicker",
                 )
+
+            with Horizontal(id="home-status-strip"):
+                yield Static("P  Passenger processes", classes="status-chip")
+                yield Static("D  CPU dispatch", classes="status-chip")
+                yield Static("S  Seat memory map", classes="status-chip")
+                yield Static("Q  Quit", classes="status-chip")
 
             with Horizontal(id="module-list"):
                 with Vertical(classes="module-card"):
                     yield Label("LINE P", classes="module-code")
                     yield Label("Passenger Manager", classes="module-title")
                     yield Label(
-                        "Inspect live processes and compare how the system shares time across active workloads.",
+                        "Inspect live OS processes with sort, limit, and refresh controls.",
                         classes="module-description",
                     )
                     yield Label(
@@ -65,7 +66,7 @@ class HomeScreen(Screen):
                     yield Label("LINE D", classes="module-code")
                     yield Label("Dispatch Scheduler", classes="module-title")
                     yield Label(
-                        "Run CPU scheduling policies and watch turnaround, waiting, and response times shift.",
+                        "Run FCFS, SJF, Round Robin, and Priority scheduling scenarios.",
                         classes="module-description",
                     )
                     yield Label(
@@ -88,7 +89,7 @@ class HomeScreen(Screen):
                     yield Label("LINE S", classes="module-code")
                     yield Label("Seat Allocator", classes="module-title")
                     yield Label(
-                        "Place memory requests into available blocks and compare allocation strategies.",
+                        "Allocate and free simulated memory with fit strategies.",
                         classes="module-description",
                     )
                     yield Label(
@@ -109,9 +110,9 @@ class HomeScreen(Screen):
 
             with Center():
                 with Vertical(id="home-legend"):
-                    yield Label("Legend", id="legend-title")
+                    yield Label("Operating Map", id="legend-title")
                     yield Static(
-                        "passenger = process   vehicle = CPU   seat = memory block   q = quit",
+                        "passenger = process   vehicle = CPU   seat = memory block",
                         id="home-glossary",
                     )
             with Center():

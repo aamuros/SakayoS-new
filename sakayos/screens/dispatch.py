@@ -22,7 +22,11 @@ from textual.widgets import (
     TextArea,
 )
 
+from rich import box
+from rich.console import Group
+from rich.panel import Panel
 from rich.table import Table
+from rich.text import Text as RichText
 
 from sakayos.core.models import SchedulerProcess, TimelineEntry
 from sakayos.services.scheduling_service import run_scheduling_simulation
@@ -63,10 +67,11 @@ def _render_metrics_summary(metrics: dict[str, dict[str, float]]) -> Table:
     table = Table(
         title="Key Metrics",
         show_header=False,
-        border_style="dim",
+        border_style="#334155",
+        box=box.SIMPLE,
         expand=True,
     )
-    table.add_column("Metric", style="bold")
+    table.add_column("Metric", style="bold #7dd3fc")
     table.add_column("Value", justify="right")
 
     count = len(metrics)
@@ -142,20 +147,18 @@ class DispatchScreen(Screen):
         with VerticalScroll(id="dispatch-container", classes="screen-container"):
             # ── Title ────────────────────────────────────────────────────
             with Vertical(classes="screen-header"):
-                with Center():
-                    yield Label(
-                        "Dispatch Scheduler",
-                        id="screen-title",
-                    )
-                with Center():
-                    yield Label(
-                        "Simulate CPU scheduling.",
-                        id="screen-description",
-                        classes="short-description",
-                    )
+                yield Label(
+                    "Dispatch Scheduler",
+                    id="screen-title",
+                )
+                yield Label(
+                    "Compare CPU scheduling policies against the same passenger queue.",
+                    id="screen-description",
+                    classes="short-description",
+                )
 
             yield Static(
-                "Dispatcher = scheduler. Passenger = process.",
+                "Dispatcher = scheduler. Passenger = process. Vehicle time = CPU time.",
                 classes="compact-help",
             )
 
@@ -197,31 +200,31 @@ class DispatchScreen(Screen):
 
             # ── Action buttons ───────────────────────────────────────────
             yield Label("Step 3: Run simulation", classes="section-label")
-            with Center():
-                with Horizontal(classes="action-button-row"):
-                    yield Button(
-                        "Run Simulation",
-                        id="btn-run",
-                        variant="success",
-                        compact=True,
-                    )
-                    yield Button(
-                        "Load Example",
-                        id="btn-example",
-                        variant="primary",
-                        compact=True,
-                    )
-                    yield Button(
-                        "Clear",
-                        id="btn-clear",
-                        variant="warning",
-                        compact=True,
-                    )
+            with Horizontal(classes="action-button-row"):
+                yield Button(
+                    "Run Simulation",
+                    id="btn-run",
+                    variant="success",
+                    compact=True,
+                )
+                yield Button(
+                    "Load Example",
+                    id="btn-example",
+                    variant="primary",
+                    compact=True,
+                )
+                yield Button(
+                    "Clear",
+                    id="btn-clear",
+                    variant="warning",
+                    compact=True,
+                )
 
             # ── Error display ────────────────────────────────────────────
             yield Static("", id="error-display", classes="hidden")
 
             # ── Results area ─────────────────────────────────────────────
+            yield Label("Results", classes="section-label")
             yield Static(
                 _EMPTY_RESULTS_MESSAGE,
                 id="results-area",
@@ -344,11 +347,13 @@ class DispatchScreen(Screen):
         input_table = Table(
             title="Input Processes",
             show_header=True,
-            header_style="bold bright_yellow",
-            border_style="dim",
+            header_style="bold #f59e0b",
+            border_style="#334155",
+            box=box.SIMPLE,
+            row_styles=["", "#94a3b8"],
             expand=True,
         )
-        input_table.add_column("PID", style="bold", width=8)
+        input_table.add_column("PID", style="bold #2dd4bf", width=8)
         input_table.add_column("Arrival", justify="right", width=10)
         input_table.add_column("Burst", justify="right", width=10)
         if algo == "priority":
@@ -374,22 +379,25 @@ class DispatchScreen(Screen):
         algo_label = algo_names.get(algo, algo)
 
         results_area.update("")
-
-        from rich.console import Group
-        from rich.panel import Panel
-        from rich.text import Text as RichText
-        header_text = RichText(
-            f"Simulation complete: {algo_label} scheduled {len(processes)} processes.",
-            style="bold bright_green",
+        completion_summary = Panel(
+            RichText(
+                f"{algo_label} completed {len(processes)} processes.",
+                style="bold #22c55e",
+            ),
+            title="Completion Summary",
+            border_style="#22c55e",
+            padding=(0, 1),
         )
-        gantt_text_renderable = RichText(gantt_text, style="bright_white")
+        gantt_text_renderable = RichText(gantt_text, style="#e5eef4")
+        gantt_group = Group(
+            Panel(gantt_text_renderable, title="Gantt View", border_style="#2dd4bf"),
+            gantt_table,
+        )
 
         group = Group(
-            header_text,
+            completion_summary,
             RichText(""),
-            gantt_table,
-            RichText(""),
-            Panel(gantt_text_renderable, title="Schedule View", border_style="cyan"),
+            gantt_group,
             RichText(""),
             summary_table,
             RichText(""),

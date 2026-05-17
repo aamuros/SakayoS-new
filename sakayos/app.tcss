@@ -1,16 +1,87 @@
-/* SakayOS — Textual CSS stylesheet */
+/* SakayOS Transit Control theme */
 
-/* ── Global ─────────────────────────────────────────────────────────────── */
+/* Global */
 
 Screen {
-    background: $surface;
+    background: #0b1114;
+    color: #e5eef4;
 }
 
-/* ── Home Screen ────────────────────────────────────────────────────────── */
+Header {
+    background: #111a20;
+    color: #e5eef4;
+    border-bottom: tall #263640;
+}
+
+Footer {
+    background: #0f171c;
+    color: #94a3b8;
+    border-top: tall #263640;
+}
+
+Button {
+    min-width: 14;
+    height: 3;
+    margin: 0 1 0 0;
+    text-style: bold;
+    border: tall #334155;
+    background: #162229;
+    color: #e5eef4;
+}
+
+Button:hover {
+    background: #1d3038;
+    border: tall #2dd4bf;
+}
+
+Button.-primary {
+    background: #12323a;
+    border: tall #2dd4bf;
+    color: #e5eef4;
+}
+
+Button.-success {
+    background: #0f2a1f;
+    border: tall #22c55e;
+    color: #dcfce7;
+}
+
+Button.-warning {
+    background: #2a2110;
+    border: tall #f59e0b;
+    color: #fef3c7;
+}
+
+Button.-error {
+    background: #32171d;
+    border: tall #fb7185;
+    color: #ffe4e6;
+}
+
+Input,
+Select,
+TextArea {
+    background: #0f171c;
+    color: #e5eef4;
+    border: tall #334155;
+}
+
+Input:focus,
+Select:focus,
+TextArea:focus {
+    border: tall #2dd4bf;
+}
+
+TextArea {
+    scrollbar-background: #0f171c;
+    scrollbar-color: #2dd4bf;
+}
+
+/* Home */
 
 #home-container {
-    padding: 1 4 1 4;
-    background: $surface;
+    padding: 1 4;
+    background: #0b1114;
 }
 
 #home-hero {
@@ -18,85 +89,100 @@ Screen {
     height: auto;
     margin: 0 0 1 0;
     padding: 1 2;
-    align-horizontal: center;
-    background: $primary 8%;
-    border: heavy $primary 55%;
+    background: #111a20;
+    border-left: thick #2dd4bf;
 }
 
 #home-title {
-    text-style: bold;
-    color: $accent;
-    text-align: center;
     width: 100%;
+    color: #e5eef4;
+    text-style: bold;
+    text-align: left;
     padding: 0;
 }
 
 #home-description {
-    color: $text;
-    text-align: center;
     width: 100%;
+    color: #7dd3fc;
+    text-align: left;
     padding: 0;
 }
 
 #home-kicker {
-    color: $text-muted;
-    text-align: center;
     width: 100%;
+    color: #94a3b8;
+    text-align: left;
     padding: 1 0 0 0;
+}
+
+#home-status-strip {
+    width: 100%;
+    height: 3;
+    margin: 0 0 1 0;
+    padding: 0;
+}
+
+.status-chip {
+    width: 1fr;
+    height: 3;
+    margin: 0 1 0 0;
+    padding: 1 1;
+    background: #0f171c;
+    color: #cbd5e1;
+    border: tall #263640;
 }
 
 #module-list {
     width: 100%;
-    height: 15;
-    align-horizontal: center;
-    margin: 1 0;
+    height: 14;
+    margin: 0 0 1 0;
 }
 
 .module-card {
     width: 1fr;
     height: 100%;
+    margin: 0 1 0 0;
     padding: 1 2;
-    margin: 0 1;
-    background: $surface-lighten-1;
-    border: round $primary 45%;
+    background: #111a20;
+    border: tall #263640;
 }
 
 .module-card:hover {
-    background: $primary 10%;
-    border: round $accent 70%;
+    background: #13242a;
+    border: tall #2dd4bf;
 }
 
 .module-code {
-    color: $accent;
+    color: #2dd4bf;
     text-style: bold;
     padding: 0 0 1 0;
 }
 
 .module-title {
-    color: $text;
+    color: #e5eef4;
     text-style: bold;
     padding: 0 0 1 0;
 }
 
 .module-description {
-    color: $text-muted;
+    color: #cbd5e1;
     height: 3;
     padding: 0 0 1 0;
 }
 
 .module-meta {
-    color: $text-muted;
+    color: #94a3b8;
     height: 1;
     padding: 0;
 }
 
 .module-concept {
-    color: $accent;
+    color: #7dd3fc;
     text-style: bold;
 }
 
 .module-shortcut {
-    color: $warning;
+    color: #f59e0b;
     text-style: bold;
     padding: 1 0 0 0;
 }
@@ -106,186 +192,204 @@ Screen {
     margin: 1 0 0 0;
 }
 
-/* ── Module Screens (Passenger, Dispatch, Seat Allocator) ───────────────── */
+#home-legend {
+    width: 88;
+    height: auto;
+    margin: 0 0 1 0;
+    padding: 1 2;
+    background: #0f171c;
+    border: tall #263640;
+}
+
+#legend-title {
+    width: 100%;
+    color: #7dd3fc;
+    text-style: bold;
+    text-align: left;
+    padding: 0 0 1 0;
+}
+
+#home-glossary {
+    width: 100%;
+    color: #94a3b8;
+    text-align: left;
+    padding: 0;
+}
+
+/* Shared module surfaces */
 
 .screen-container {
-    padding: 2 4;
+    padding: 1 4;
+    background: #0b1114;
 }
 
 .screen-header {
     width: 100%;
     height: auto;
     margin: 0 0 1 0;
-    align-horizontal: center;
+    padding: 0 0 1 0;
+    border-bottom: tall #263640;
 }
 
 #screen-title {
-    text-style: bold;
-    color: $accent;
-    text-align: center;
     width: 100%;
-    padding: 0 0 1 0;
+    color: #e5eef4;
+    text-style: bold;
+    text-align: left;
+    padding: 0;
 }
 
 .short-description {
-    color: $text-muted;
-    text-align: center;
-    width: 64;
-    padding: 0;
-}
-
-#btn-back {
-    width: 30;
-    margin: 1 0;
-}
-
-/* ── Analogy / Help Elements ───────────────────────────────────────────── */
-
-#home-glossary {
-    color: $text-muted;
-    text-align: center;
     width: 100%;
+    color: #94a3b8;
+    text-align: left;
     padding: 0;
-}
-
-#home-legend {
-    width: 88;
-    height: auto;
-    padding: 1 2;
-    margin: 0 0 1 0;
-    background: $primary 6%;
-    border: tall $primary 40%;
-}
-
-#legend-title {
-    color: $accent;
-    text-style: bold;
-    text-align: center;
-    width: 100%;
-    padding: 0 0 1 0;
 }
 
 .compact-help {
-    color: $text-muted;
-    padding: 0 1;
-    margin: 0 1 1 1;
-    border-left: thick $primary 40%;
-    background: $primary 5%;
+    width: 100%;
+    margin: 0 0 1 0;
+    padding: 1 2;
+    color: #cbd5e1;
+    background: #0f171c;
+    border-left: thick #2dd4bf;
 }
 
-/* ── Dispatch Scheduler — Form Fields ──────────────────────────────────── */
-
 .form-section {
+    width: 100%;
     height: auto;
-    margin: 0 1 1 1;
+    margin: 0 0 1 0;
     padding: 0;
 }
 
 .section-label {
-    color: $text;
+    color: #7dd3fc;
     text-style: bold;
-    padding: 0 0 0 1;
+    padding: 0 0 1 0;
 }
 
 .field-label {
-    color: $accent;
+    color: #cbd5e1;
     text-style: bold;
-    padding: 0 1 0 1;
+    padding: 1 1 0 0;
 }
 
 .hint-label {
-    color: $text-muted;
-    padding: 0 0 0 1;
+    color: #f59e0b;
+    padding: 0 0 1 0;
 }
 
-#algo-select {
-    margin: 0 1 1 1;
-    width: 54;
-}
-
-#process-input {
-    margin: 0 1 1 1;
-    height: 7;
-    max-width: 72;
-}
-
-#quantum-input {
-    margin: 0 1 1 1;
-    width: 30;
-}
-
-.action-button-row {
+.toolbar {
+    width: 100%;
+    height: auto;
     padding: 0;
-    margin: 1 0;
+    margin: 0 0 1 0;
+    align-vertical: middle;
 }
-
-.action-button-row Button {
-    margin: 0 1 0 0;
-    width: 18;
-}
-
-/* ── Dispatch Scheduler — Error & Results ──────────────────────────────── */
-
-#error-display {
-    color: $error;
-    background: $error 10%;
-    padding: 1 2;
-    margin: 1 1;
-    border: tall $error;
-}
-
-.result-section {
-    padding: 1 2;
-    margin: 0 1 1 1;
-}
-
-.empty-state {
-    color: $text-muted;
-    text-align: center;
-    border: tall $primary 30%;
-    background: $primary 5%;
-}
-
-.status-line {
-    color: $text-muted;
-    padding: 0 1 1 1;
-    margin: 0 1;
-}
-
-/* ── Form Inputs ───────────────────────────────────────────────────────── */
 
 .form-row {
+    width: 100%;
     height: auto;
-    margin: 0 1 1 1;
+    margin: 0 0 1 0;
     padding: 0;
     align-vertical: middle;
 }
 
+.action-button-row {
+    width: 100%;
+    height: auto;
+    padding: 0;
+    margin: 0 0 1 0;
+}
+
+.action-button-row Button {
+    width: 18;
+}
+
+#btn-back {
+    width: 24;
+    margin: 1 0;
+}
+
+/* Inputs and selectors */
+
+#algo-select {
+    width: 56;
+    margin: 0 0 1 0;
+}
+
+#process-input {
+    width: 100%;
+    height: 7;
+    max-width: 88;
+    margin: 0 0 1 0;
+}
+
+#quantum-input {
+    width: 24;
+    margin: 0 0 1 0;
+}
+
 .short-input {
     width: 18;
-    margin: 0 1;
+    margin: 0 1 0 0;
 }
 
 #select-strategy {
-    margin: 0 1 1 1;
     width: 40;
+    margin: 0 0 1 0;
 }
 
 #select-sort {
-    margin: 0 1;
     width: 30;
+    margin: 0 1 0 0;
 }
 
 #select-limit {
-    margin: 0 1;
     width: 20;
+    margin: 0 1 0 0;
+}
+
+/* States and results */
+
+#error-display {
+    width: 100%;
+    color: #fb7185;
+    background: #32171d;
+    padding: 1 2;
+    margin: 0 0 1 0;
+    border-left: thick #fb7185;
+}
+
+.result-section {
+    width: 100%;
+    margin: 0 0 1 0;
+    padding: 1 2;
+    background: #0f171c;
+    border: tall #263640;
+}
+
+.empty-state {
+    color: #94a3b8;
+    text-align: center;
+    background: #0f171c;
+    border: tall #334155;
+}
+
+.status-line {
+    width: 100%;
+    color: #22c55e;
+    background: #0f1c17;
+    padding: 1 2;
+    margin: 0 0 1 0;
+    border-left: thick #22c55e;
 }
 
 #memory-status {
-    text-align: center;
+    text-align: left;
 }
 
-/* ── Hidden utility ────────────────────────────────────────────────────── */
+/* Hidden utility */
 
 .hidden {
     display: none;

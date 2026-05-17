@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from rich import box
 from rich.table import Table
 from rich.text import Text
 
@@ -13,18 +14,20 @@ def render_memory_table(blocks: list[MemoryBlock]) -> Table:
     table = Table(
         title="Memory Blocks",
         show_header=True,
-        header_style="bold bright_blue",
-        border_style="dim",
+        header_style="bold #7dd3fc",
+        border_style="#334155",
+        box=box.SIMPLE,
+        row_styles=["", "#94a3b8"],
         expand=True,
     )
-    table.add_column("Start Addr", justify="right", width=12)
+    table.add_column("Start Addr", justify="right", width=12, style="#2dd4bf")
     table.add_column("Size", justify="right", width=12)
     table.add_column("Status", style="bold", width=16)
 
     for block in blocks:
         status = "FREE" if block.is_free else f"Allocated: {block.process_id}"
-        style = "dim bright_green" if block.is_free else "bright_yellow"
-        
+        style = "#22c55e" if block.is_free else "#f59e0b"
+
         table.add_row(
             str(block.start),
             str(block.size),
@@ -64,18 +67,28 @@ def render_memory_bar(blocks: list[MemoryBlock], total_width: int = 60) -> str:
     return f"[{joined}]"
 
 
+def render_memory_legend() -> Text:
+    """Render a compact legend for the text memory bar."""
+    legend = Text()
+    legend.append("█ allocated", style="#f59e0b")
+    legend.append("   ")
+    legend.append("░ free", style="#22c55e")
+    return legend
+
+
 def render_fragmentation_summary(
     summary: dict[str, int],
     total_size: int | None = None,
 ) -> Table:
     """Render compact memory usage and fragmentation metrics."""
     table = Table(
-        title="Memory Summary",
+        title="Memory KPIs",
         show_header=False,
-        border_style="dim",
+        border_style="#334155",
+        box=box.SIMPLE,
         expand=True,
     )
-    table.add_column("Metric", style="bold bright_cyan")
+    table.add_column("Metric", style="bold #7dd3fc")
     table.add_column("Value", justify="right")
 
     free_memory = summary["total_free_memory"]

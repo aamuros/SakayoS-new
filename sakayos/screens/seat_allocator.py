@@ -34,6 +34,7 @@ from sakayos.services.memory_service import (
 )
 from sakayos.ui.memory_view import (
     render_memory_bar,
+    render_memory_legend,
     render_memory_table,
     render_fragmentation_summary,
 )
@@ -61,26 +62,25 @@ class SeatAllocatorScreen(Screen):
         with VerticalScroll(id="seat-container", classes="screen-container"):
             # ── Title ────────────────────────────────────────────────────
             with Vertical(classes="screen-header"):
-                with Center():
-                    yield Label(
-                        "Seat Allocator",
-                        id="screen-title",
-                    )
-                with Center():
-                    yield Label(
-                        "Allocate simulated memory blocks.",
-                        id="screen-description",
-                        classes="short-description",
-                    )
+                yield Label(
+                    "Seat Allocator",
+                    id="screen-title",
+                )
+                yield Label(
+                    "Initialize a memory pool, allocate seats, and watch fragmentation.",
+                    id="screen-description",
+                    classes="short-description",
+                )
 
             yield Static(
-                "Bus seats are memory blocks; empty gaps are fragmentation.",
+                "Bus seats are memory blocks. Empty gaps show external fragmentation.",
                 id="allocator-analogy",
                 classes="compact-help",
             )
 
             # ── Initialization Section ───────────────────────────────────
-            with Horizontal(id="init-section", classes="form-row form-section"):
+            yield Label("Memory Pool", classes="section-label")
+            with Horizontal(id="init-section", classes="toolbar form-section"):
                 yield Label("Memory Size", classes="field-label")
                 yield Input(
                     placeholder="e.g. 1024",
@@ -99,6 +99,7 @@ class SeatAllocatorScreen(Screen):
 
             # ── Allocation Section (hidden until init) ───────────────────
             with Vertical(id="action-section", classes="form-section hidden"):
+                yield Label("Allocation Controls", classes="section-label")
                 yield Label("Allocation Strategy", classes="field-label")
                 yield Select(
                     [(label, key) for label, key in _STRATEGIES],
@@ -107,7 +108,7 @@ class SeatAllocatorScreen(Screen):
                     value="first_fit",
                 )
 
-                with Horizontal(classes="form-row"):
+                with Horizontal(classes="toolbar"):
                     yield Label("Process ID", classes="field-label")
                     yield Input(
                         placeholder="e.g. P1",
@@ -120,23 +121,21 @@ class SeatAllocatorScreen(Screen):
                         id="input-alloc-size",
                         classes="short-input",
                     )
-
-                with Center():
-                    with Horizontal(classes="action-button-row"):
-                        yield Button(
-                            "Allocate",
-                            id="btn-alloc",
-                            variant="success",
-                            compact=True,
-                        )
-                        yield Button(
-                            "Free",
-                            id="btn-dealloc",
-                            variant="warning",
-                            compact=True,
-                        )
+                    yield Button(
+                        "Allocate",
+                        id="btn-alloc",
+                        variant="success",
+                        compact=True,
+                    )
+                    yield Button(
+                        "Free",
+                        id="btn-dealloc",
+                        variant="warning",
+                        compact=True,
+                    )
 
             # ── Results Area ─────────────────────────────────────────────
+            yield Label("Memory Map", classes="section-label")
             yield Static(
                 "Initialize memory to begin.",
                 id="results-area",
@@ -182,7 +181,7 @@ class SeatAllocatorScreen(Screen):
 
         self.query_one("#action-section").remove_class("hidden")
         self.query_one("#init-section").add_class("hidden")
-        self._update_display()
+        self._update_display("Memory initialized.")
 
     def _allocate_memory(self) -> None:
         self._hide_error()
@@ -215,7 +214,7 @@ class SeatAllocatorScreen(Screen):
         # Clear inputs on success
         self.query_one("#input-pid", Input).value = ""
         self.query_one("#input-alloc-size", Input).value = ""
-        self._update_display()
+        self._update_display(f"Allocated {result.process_id} ({result.size} units).")
 
     def _deallocate_memory(self) -> None:
         self._hide_error()
@@ -238,9 +237,9 @@ class SeatAllocatorScreen(Screen):
 
         # Clear inputs on success
         self.query_one("#input-pid", Input).value = ""
-        self._update_display()
+        self._update_display(f"Freed {result.process_id}.")
 
-    def _update_display(self) -> None:
+    def _update_display(self, notice: str | None = None) -> None:
         """Update the results area with current memory state."""
         if self.allocator is None:
             return
@@ -254,15 +253,19 @@ class SeatAllocatorScreen(Screen):
         table = render_memory_table(blocks)
         summary_table = render_fragmentation_summary(summary, self.allocator.total_size)
         status = self.query_one("#memory-status", Static)
-        status.update(self._format_memory_status(summary))
+        status_text = self._format_memory_status(summary)
+        if notice:
+            status_text = f"{notice} | {status_text}"
+        status.update(status_text)
         status.remove_class("hidden")
 
         group = Group(
             Panel(
                 Text(bar_text, style="cyan"),
                 title="Memory Visualizer",
-                border_style="cyan",
+                border_style="#2dd4bf",
             ),
+            render_memory_legend(),
             Text(""),
             summary_table,
             Text(""),

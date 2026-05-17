@@ -52,25 +52,25 @@ def render_process_table(processes: list[ProcessInfo]) -> Table:
     table = Table(
         title="Processes",
         show_header=True,
-        header_style="bold",
-        border_style="dim",
-        box=box.SIMPLE_HEAVY,
-        row_styles=["", "dim"],
+        header_style="bold #7dd3fc",
+        border_style="#334155",
+        box=box.SIMPLE,
+        row_styles=["", "#94a3b8"],
         expand=True,
     )
-    table.add_column("PID", justify="right", width=8, style="cyan")
-    table.add_column("Name", width=24)
+    table.add_column("PID", justify="right", width=8, style="#2dd4bf")
+    table.add_column("Name", width=24, style="#e5eef4")
     table.add_column("Status", width=12)
     table.add_column("CPU %", justify="right", width=10)
     table.add_column("Mem %", justify="right", width=10)
-    table.add_column("Username", width=16)
+    table.add_column("Username", width=16, style="#cbd5e1")
 
     for proc in processes:
         # Colour-code status
-        status_style = "bright_green" if proc.status == "running" else "dim"
+        status_style = "#22c55e" if proc.status == "running" else "#64748b"
         # Colour-code high CPU / memory
-        cpu_style = "bold bright_red" if proc.cpu_percent >= 50.0 else ""
-        mem_style = "bold bright_red" if proc.memory_percent >= 50.0 else ""
+        cpu_style = "bold #fb7185" if proc.cpu_percent >= 50.0 else ""
+        mem_style = "bold #fb7185" if proc.memory_percent >= 50.0 else ""
 
         table.add_row(
             str(proc.pid),
@@ -97,25 +97,24 @@ class PassengerScreen(Screen):
         with VerticalScroll(id="passenger-container", classes="screen-container"):
             # ── Title ────────────────────────────────────────────────────
             with Vertical(classes="screen-header"):
-                with Center():
-                    yield Label(
-                        "Passenger Manager",
-                        id="screen-title",
-                    )
-                with Center():
-                    yield Label(
-                        "View running OS processes in a read-only table.",
-                        id="screen-description",
-                        classes="short-description",
-                    )
+                yield Label(
+                    "Passenger Manager",
+                    id="screen-title",
+                )
+                yield Label(
+                    "Read-only process monitor for the current host.",
+                    id="screen-description",
+                    classes="short-description",
+                )
 
             yield Static(
-                "Read-only: this screen does not modify processes.",
+                "Live process data. Sort, limit, and refresh without modifying the OS.",
                 classes="compact-help",
             )
 
             # ── Controls ─────────────────────────────────────────────────
-            with Horizontal(classes="form-row form-section"):
+            yield Label("Controls", classes="section-label")
+            with Horizontal(classes="toolbar form-section"):
                 yield Label("Sort by:", classes="field-label")
                 yield Select(
                     [(label, key) for label, key in _SORT_OPTIONS],
@@ -130,15 +129,12 @@ class PassengerScreen(Screen):
                     prompt="Row limit...",
                     value=25,
                 )
-
-            with Center():
-                with Horizontal(classes="action-button-row"):
-                    yield Button(
-                        "Refresh",
-                        id="btn-refresh",
-                        variant="success",
-                        compact=True,
-                    )
+                yield Button(
+                    "Refresh",
+                    id="btn-refresh",
+                    variant="success",
+                    compact=True,
+                )
 
             yield Static("", id="status-line", classes="status-line hidden")
 
@@ -146,6 +142,7 @@ class PassengerScreen(Screen):
             yield Static("", id="error-display", classes="hidden")
 
             # ── Results area ─────────────────────────────────────────────
+            yield Label("Process Table", classes="section-label")
             yield Static("", id="results-area", classes="result-section hidden")
 
             # ── Back button ──────────────────────────────────────────────
